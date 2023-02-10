@@ -39,3 +39,16 @@ fn _create_process() {
     .spawn()
     .expect("failed to start paint program");
 }
+
+#[test]
+fn test_create_process() {
+    _create_process();
+    let result = Command::new("tasklist")
+        .arg("/fi")
+        .arg("imagename eq mspaint.exe")
+        .output()
+        .expect("failed to execute tasklist command");
+
+    let output = String::from_utf8_lossy(&result.stdout);
+    assert!(output.contains("mspaint.exe"), "mspaint.exe not found in tasklist output");
+}
