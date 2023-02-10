@@ -2,7 +2,6 @@
 use std::sync::mpsc::{channel, Sender};
 mod main_loop;
 
-
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
     
     tx.send(main_loop::_Task::StartProcess).unwrap();

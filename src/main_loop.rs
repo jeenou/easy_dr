@@ -1,5 +1,6 @@
 
 use std::sync::mpsc::{Receiver};
+use std::process::Command;
 
 pub enum _Task {
     StartProcess,
@@ -10,7 +11,7 @@ pub fn task_loop(rx: Receiver<_Task>) {
     for received in rx {
         match received {
             _Task::StartProcess => {
-                println!("start process");
+                _start();
             },
             _Task::QuitProcess => {
                 println!("quit process");
@@ -19,15 +20,22 @@ pub fn task_loop(rx: Receiver<_Task>) {
     }
 }
 
-/*
-fn _task_loop() {
-    let running = true;
+fn _start() {
+    /*Starts a new process.
 
-    while running {
+    Args:
+        message (dict): task message
+        processes (dict): running processes
+        logs (dict): process logs
+    */
 
-        for received in receiver {
-            println!("Received: {}", received);
-        }
-    }
+    _create_process();
+    
 }
-*/
+
+fn _create_process() {
+    //Palauttaa prosessin
+    Command::new("mspaint")
+    .spawn()
+    .expect("failed to start paint program");
+}
