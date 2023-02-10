@@ -2,17 +2,10 @@
 use std::sync::mpsc::{channel, Sender};
 mod main_loop;
 
-/*
-enum Task {
-    Quit,
-    StartProcess
-}
-*/
 
-pub fn start_sending(tx: Sender<&str>) {
+pub fn start_sending(tx: Sender<main_loop::_Task>) {
     
-    tx.send("start").unwrap();
-    tx.send("quit").unwrap();
+    tx.send(main_loop::_Task::StartProcess).unwrap();
     
 }
 

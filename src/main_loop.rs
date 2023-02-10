@@ -1,22 +1,20 @@
 
 use std::sync::mpsc::{Receiver};
 
-enum Field {
-    Task,
-    ExecutionId,
-    ProcessCommand,
-    ProcessArguments
+pub enum _Task {
+    StartProcess,
+    QuitProcess
 }
 
-pub fn task_loop(rx: Receiver<&str>) {
+pub fn task_loop(rx: Receiver<_Task>) {
     for received in rx {
-        if received == "start" {
-            println!("start")
-        }
-        else if received == "quit" {
-            println!("quit")
-        } else {
-            println!("jotain meni vikaan")
+        match received {
+            _Task::StartProcess => {
+                println!("start process");
+            },
+            _Task::QuitProcess => {
+                println!("quit process");
+            }
         }
     }
 }
