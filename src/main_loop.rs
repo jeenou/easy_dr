@@ -2,14 +2,17 @@
 use std::sync::mpsc::{Receiver};
 use std::process::{Command, Stdio};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 pub enum _Task {
     StartProcess,
     QuitProcess
 }
 
-
+fn _directory_exists(path: &str) -> bool {
+    let dir = Path::new(path);
+    dir.exists() && dir.is_dir()
+}
 
 pub fn task_loop(rx: Receiver<_Task>) {
     let mut running = true;
@@ -100,4 +103,20 @@ fn test_create_process() {
 
     let output = String::from_utf8_lossy(&result.stdout);
     assert!(output.contains("mspaint.exe"), "mspaint.exe not found in tasklist output");
+}
+
+#[test]
+fn test_predicer_results_dir() {
+
+    let mut dir_path = PathBuf::from("src");
+    dir_path.push("Predicer/results");
+
+    let dir_exists = dir_path.exists() && dir_path.is_dir();
+    assert!(dir_exists, "Directory {} does not exist", dir_path.display());
+
+    //open_predicer();
+    /*
+    let new_files = fs::read_dir("input_data").unwrap().count();
+    assert_eq!(new_files, initial_files + 1, "No new file was created");
+    */
 }
