@@ -9,6 +9,8 @@ pub enum _Task {
     QuitProcess
 }
 
+
+
 pub fn task_loop(rx: Receiver<_Task>) {
     let mut running = true;
 
@@ -62,12 +64,18 @@ fn open_predicer() {
 
     let mut child = Command::new("julia")
     .current_dir(path)
-    .args(&["--eval", "using Pkg; Pkg.activate(\".\"); Pkg.instantiate();"])
+    .args(&[
+        "--eval", "using Pkg; Pkg.activate(\".\"); Pkg.instantiate();",
+        "--eval", "using Predicer",
+        "--eval", "mc, input_data = Predicer.generate_model(\"input_data/input_data.xlsx\")",
+        "--eval", "Predicer.solve_model(mc)",
+        "--eval", "Predicer.write_bid_matrix(mc, input_data)"
+    ])
     .stdin(Stdio::piped())
     .spawn()
     .expect("failed to execute process");
 
-    let input = b"]\nactivate .\nbackspace\nusing Predicer\nmc, input_data = Predicer.generate_model(\"input_data/input_data.xlsx\")\n";
+    let input = b"]\nactivate .\nbackspace\n";
     let child_stdin = child.stdin.as_mut().unwrap();
     child_stdin.write_all(input).unwrap();
 
@@ -75,7 +83,6 @@ fn open_predicer() {
     let output = child.wait_with_output().expect("failed to wait on child");
 
     println!("{}", String::from_utf8_lossy(&output.stdout));
-
 }
 
 fn _quit_process() {
