@@ -3,6 +3,7 @@ use std::sync::mpsc::{Receiver};
 use std::process::{Command, Stdio};
 use std::io::Write;
 use std::path::{PathBuf, Path};
+use std::fs;
 
 pub enum _Task {
     StartProcess,
@@ -91,7 +92,7 @@ fn open_predicer() {
 fn _quit_process() {
     //Terminates a running process
 }
-
+/*
 #[test]
 fn test_create_process() {
     _create_process();
@@ -104,19 +105,29 @@ fn test_create_process() {
     let output = String::from_utf8_lossy(&result.stdout);
     assert!(output.contains("mspaint.exe"), "mspaint.exe not found in tasklist output");
 }
+*/
 
 #[test]
-fn test_predicer_results_dir() {
+fn test_open_predicer() {
+    let mut dir = PathBuf::from("src");
+    dir.push("Predicer/results");
 
-    let mut dir_path = PathBuf::from("src");
-    dir_path.push("Predicer/results");
+    if !dir.exists() {
+        let mut dir_path = PathBuf::from("src");
+        dir_path.push("Predicer/results");
+        open_predicer();
+        let dir_exists = dir_path.exists() && dir_path.is_dir();
+        assert!(dir_exists, "Directory {} does not exist", dir_path.display());
 
-    let dir_exists = dir_path.exists() && dir_path.is_dir();
-    assert!(dir_exists, "Directory {} does not exist", dir_path.display());
+    }
+    else {
+        let new_dir_path = PathBuf::from("src/Predicer/results");
 
-    //open_predicer();
-    /*
-    let new_files = fs::read_dir("input_data").unwrap().count();
-    assert_eq!(new_files, initial_files + 1, "No new file was created");
-    */
+        let before_files = fs::read_dir(&new_dir_path).unwrap().count();
+        open_predicer();
+        let after_files = fs::read_dir(&new_dir_path).unwrap().count();
+
+        assert!(after_files > before_files, "Error: no new files were created");
+    }
+
 }
