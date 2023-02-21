@@ -3,7 +3,8 @@ use std::sync::mpsc::{Receiver};
 use std::process::{Command, Stdio};
 use std::io::Write;
 use std::path::{PathBuf, Path};
-use std::fs;
+//use std::fs;
+use umya_spreadsheet::*;
 
 pub enum _Task {
     StartProcess,
@@ -15,7 +16,14 @@ fn _directory_exists(path: &str) -> bool {
     dir.exists() && dir.is_dir()
 }
 
-pub fn task_loop(rx: Receiver<_Task>) {
+pub fn read_file(path: &PathBuf) {
+    //read a file
+    let mut book = reader::xlsx::read(path).unwrap();
+    book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut("A1").set_value("TEST1");
+    let _ = writer::xlsx::write(&book, path);
+}
+
+pub fn _task_loop(rx: Receiver<_Task>) {
     let mut running = true;
 
     while running {
@@ -49,7 +57,7 @@ fn _start() {
         logs (dict): process logs
     */
 
-    open_predicer();
+    _open_predicer();
     
 }
 
@@ -60,7 +68,7 @@ fn _create_process() {
     .expect("failed to start paint program");
 }
 
-fn open_predicer() {
+fn _open_predicer() {
     //Starts Predicer.
 
     let mut path = PathBuf::from("src");
@@ -115,7 +123,7 @@ fn test_open_predicer() {
     if !dir.exists() {
         let mut dir_path = PathBuf::from("src");
         dir_path.push("Predicer/results");
-        open_predicer();
+        _open_predicer();
         let dir_exists = dir_path.exists() && dir_path.is_dir();
         assert!(dir_exists, "Directory {} does not exist", dir_path.display());
 
@@ -124,7 +132,7 @@ fn test_open_predicer() {
         let new_dir_path = PathBuf::from("src/Predicer/results");
 
         let before_files = fs::read_dir(&new_dir_path).unwrap().count();
-        open_predicer();
+        _open_predicer();
         let after_files = fs::read_dir(&new_dir_path).unwrap().count();
 
         assert!(after_files > before_files, "Error: no new files were created");

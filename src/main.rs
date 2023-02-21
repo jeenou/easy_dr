@@ -1,5 +1,6 @@
 
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender};
+use std::path::{PathBuf};
 mod main_loop;
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
@@ -10,7 +11,12 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 }
 
 fn main() {
-    let (tx, rx) = channel();
-    start_sending(tx);
-    main_loop::task_loop(rx);
+    //let (tx, rx) = channel();
+    //start_sending(tx);
+    //main_loop::task_loop(rx);
+
+    let mut path = PathBuf::from("src");
+    path.push("Predicer/input_data/input_data_6.xlsx");
+
+    main_loop::read_file(&path);
 }
