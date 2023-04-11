@@ -3,23 +3,51 @@ use std::sync::mpsc::{Receiver};
 use std::process::{Command, Stdio};
 use std::io::Write;
 use std::path::{PathBuf, Path};
-//use std::fs;
+use std::fs;
 use umya_spreadsheet::*;
 
+// Define an enum for representing different types of tasks
 pub enum _Task {
-    StartProcess,
-    QuitProcess
+    StartProcess,   // A task to start a process
+    QuitProcess     // A task to quit a process
 }
 
+// Check if a directory exists at the given path
 fn _directory_exists(path: &str) -> bool {
-    let dir = Path::new(path);
-    dir.exists() && dir.is_dir()
+    let dir = Path::new(path);  // Create a Path object from the path string
+    dir.exists() && dir.is_dir()  // Check if the path exists and is a directory
 }
 
-pub fn read_file(path: &PathBuf) {
-    //read a file
+pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
+    // create workbook and add a new worksheet
+    let mut book = new_file();
+
+    // write values to new sheet
+    for (i, row_values) in values.iter().enumerate() {
+        for (j, cell_value) in row_values.iter().enumerate() {
+            let cell_ref = format!("{}{}", (j as u8 + b'A') as char, i + 1);
+            book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut(&cell_ref).set_value(cell_value);
+        }
+    }
+
+    let path = std::path::Path::new("C:/spread_test_data/ccc.xlsx");
+    let _ = writer::xlsx::write(&book, path);
+    //let _ = writer::xlsx::write(&book, path);
+}
+
+pub fn _write_file_vector(path: &PathBuf, values: Vec<Vec<std::string::String>>) {
+    // create workbook and add a new worksheet
     let mut book = reader::xlsx::read(path).unwrap();
-    book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut("A1").set_value("TEST1");
+    let mut book = new_file();
+
+    // write values to new sheet
+    for (i, row_values) in values.iter().enumerate() {
+        for (j, cell_value) in row_values.iter().enumerate() {
+            let cell_ref = format!("{}{}", (j as u8 + b'A') as char, i + 1);
+            book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut(&cell_ref).set_value(cell_value);
+        }
+    }
+
     let _ = writer::xlsx::write(&book, path);
 }
 
