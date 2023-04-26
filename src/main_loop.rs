@@ -3,7 +3,6 @@ use std::sync::mpsc::{Receiver};
 use std::process::{Command, Stdio};
 use std::io::Write;
 use std::path::{PathBuf, Path};
-use std::fs;
 use umya_spreadsheet::*;
 
 // Define an enum for representing different types of tasks
@@ -49,6 +48,23 @@ pub fn _write_file_vector(path: &PathBuf, values: Vec<Vec<std::string::String>>)
     }
 
     let _ = writer::xlsx::write(&book, path);
+}
+
+pub fn _create_model(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<String>> {
+    // Create a 2D vector with one row for each device and two columns.
+    let mut result = vec![vec!["".to_string(); 2]; devices.len()];
+
+    // Fill in the first column with the device names.
+    for (i, device) in devices.iter().enumerate() {
+        result[i][0] = device.to_string();
+    }
+
+    // Fill in the second column with the parameter names.
+    for (i, param) in parameters.iter().enumerate() {
+        result[i][1] = param.to_string();
+    }
+
+    result
 }
 
 pub fn _task_loop(rx: Receiver<_Task>) {
