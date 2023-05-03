@@ -1,9 +1,14 @@
 use std::io;
 use std::fs;
-use std::path::{PathBuf, Path};
+use std::error::Error;
+use std::path::PathBuf;
+use std::io::BufReader;
 use umya_spreadsheet::*;
 use std::collections::HashMap;
-use jlrs::prelude::*;
+//use indexmap::IndexMap;
+use std::fs::File;
+
+pub type Result<T, E> = std::result::Result<T, E>;
 
 // This function takes three arguments:
 //   - bool_val: a boolean value to insert into the vector
@@ -87,7 +92,7 @@ pub fn _read_devices() -> Vec<String> {
     devices
 }
 
-fn create_2d_vector(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<String>> {
+fn _create_2d_vector(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<String>> {
     // Create a 2D vector with one row for each device and two columns.
     let mut result = vec![vec!["".to_string(); 2]; devices.len()];
 
@@ -103,6 +108,28 @@ fn create_2d_vector(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<St
 
     result
 }
+
+
+pub fn _csv_to_hashmap(file_path: PathBuf) -> Result<HashMap<String, String>, Box<dyn Error>> {
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(reader);
+
+    let mut map = HashMap::new();
+    for result in csv_reader.records() {
+        let record = result?;
+        if let (Some(key), Some(value)) = (record.get(0), record.get(1)) {
+            map.insert(key.to_string(), value.to_string());
+        }
+    }
+
+    Ok(map)
+}
+
+
+
 /*
 pub fn get_processes(parameter_map: &HashMap<&str, &str>, process: &str) -> Vec<&str> {
     let mut parameter2_vec = Vec::new();

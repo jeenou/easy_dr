@@ -1,9 +1,8 @@
 
 use std::sync::mpsc::{Sender};
-use std::path::{PathBuf};
 mod main_loop;
 mod utilities;
-use jlrs::prelude::*;
+//use jlrs::prelude::*;
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
     
@@ -13,12 +12,19 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 }
 
 fn main() {
+
+    let mut path = std::env::current_dir().expect("Failed to get current directory");
+    path.push("src/Predicer/input_data/input_data_csv/scenarios.csv");
+
+    let map = utilities::_csv_to_hashmap(path).unwrap();
+
+    for (key, value) in &map {
+        println!("{}: {}", key, value);
+    }
+
     //let (tx, rx) = channel();
     //start_sending(tx);
     //main_loop::task_loop(rx);
-
-    //let mut path = PathBuf::from("src");
-    //path.push("Predicer/input_data/input_data_6.xlsx");
 
     //tee datavektori, missä tarvittavat tiedot
     //laheta data write filulle
@@ -52,9 +58,14 @@ fn main() {
     // Julia must be initialized before it can be used.
     // This is safe because this we're not initializing Julia from another
     // thread and crate at the same time.
+
+    /*
+    Calling julia function
+    
     let mut frame = StackFrame::new();
     let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
     let mut julia = pending.instance(&mut frame);
+    let mut fpath = "input_data/input_data.xlsx";
 
     // Include some custom code defined in MyModule.jl.
     // This is safe because the included code doesn't do any strange things.
@@ -98,4 +109,6 @@ fn main() {
         .expect("Result is an error");
 
     println!("Result: {}", result);
+
+    */
 }

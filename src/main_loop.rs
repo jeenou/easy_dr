@@ -36,7 +36,7 @@ pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
 
 pub fn _write_file_vector(path: &PathBuf, values: Vec<Vec<std::string::String>>) {
     // create workbook and add a new worksheet
-    let mut book = reader::xlsx::read(path).unwrap();
+    //let mut _book = reader::xlsx::read(path).unwrap();
     let mut book = new_file();
 
     // write values to new sheet
