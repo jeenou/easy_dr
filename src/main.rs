@@ -2,7 +2,8 @@
 use std::sync::mpsc::{Sender};
 mod main_loop;
 mod utilities;
-//use jlrs::prelude::*;
+use jlrs::prelude::*;
+use std::path::PathBuf;
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
     
@@ -13,14 +14,84 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    let mut path = std::env::current_dir().expect("Failed to get current directory");
-    path.push("src/Predicer/input_data/input_data_csv/scenarios.csv");
+    // Julia must be initialized before it can be used.
+    // This is safe because this we're not initializing Julia from another
+    // thread and crate at the same time.
+    let mut frame = StackFrame::new();
+    let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+    let mut julia = pending.instance(&mut frame);
 
-    let map = utilities::_csv_to_hashmap(path).unwrap();
-
-    for (key, value) in &map {
-        println!("{}: {}", key, value);
+    // Include some custom code defined in MyModule.jl.
+    // This is safe because the included code doesn't do any strange things.
+    unsafe {
+        let path = PathBuf::from("MyModule.jl");
+        let data = utilities::_generate_data();
+        if path.exists() {
+            julia.include(path).expect("Could not include file");
+        } else {
+            julia
+                .include("src/Predicer/src/MyModule.jl")
+                .expect("Could not include file");
+        }
     }
+
+    // An extended target provides a target for the result we want to return and a frame for
+    // temporary data.
+    let (target, frame) = target.split();
+    frame.scope(|mut frame| {
+        // Get OrderedDict, load OrderedCollections if it can't be found. An error is returned if
+        // OrderedCollections hasn't been installed yet.
+        // OrderedDict is a UnionAll because it has type parameters that must be set
+        let ordered_dict = Module::main(&frame).global(&mut frame, "OrderedDict");
+        let ordered_dict_ua = match ordered_dict {
+            Ok(ordered_dict) => ordered_dict,
+            Err(_) => {
+                // Safety: using this package is fine.
+                unsafe {
+                    Value::eval_string(&mut frame, "using OrderedCollections")
+                        .into_jlrs_result()?
+                };
+                Module::main(&frame).global(&mut frame, "OrderedDict")?
+            }
+        }
+        .cast::<UnionAll>()?;
+        // The key and value type.
+        let types = [
+            DataType::string_type(&frame).as_value(),
+            DataType::int32_type(&frame).as_value(),
+        ];
+        // Apply the types to the OrderedDict UnionAll to create the OrderedDict{String, Int32}
+        // DataType, and call its constructor.
+        //
+        // Safety: the types are correct and the constructor doesn't access any data that might
+        // be in use.
+        let ordered_dict = unsafe {
+            let ordered_dict_ty = ordered_dict_ua
+                .apply_types(&mut frame, types)
+                .into_jlrs_result()?;
+            ordered_dict_ty.call0(&mut frame).into_jlrs_result()?
+        };
+        let setindex_fn = Module::base(&target).function(&mut frame, "setindex!")?;
+        for (key, value) in data {
+            // Create the keys and values in temporary scopes to avoid rooting an arbitrarily
+            // large number of pairs in the current frame.
+            frame.scope(|mut frame| {
+                let key = JuliaString::new(&mut frame, key).as_value();
+                let value = Value::new(&mut frame, *value);
+                // Safety: the ordered dict can only be used in this function until it is
+                // returned, setindex! is a safe function.
+                unsafe {
+                    setindex_fn
+                        .call3(&mut frame, ordered_dict, value, key)
+                        .into_jlrs_result()?;
+                }
+                Ok(())
+            })?;
+        }
+        Ok(ordered_dict.root(target))
+    })
+
+    // Do something with the returned ordered dictionary...
 
     //let (tx, rx) = channel();
     //start_sending(tx);

@@ -17,11 +17,13 @@ fn _directory_exists(path: &str) -> bool {
     dir.exists() && dir.is_dir()  // Check if the path exists and is a directory
 }
 
+// This function takes a vector of vectors of strings as input 
+// and writes the data to an Excel file.
 pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
-    // create workbook and add a new worksheet
+    // Create a new Excel workbook.
     let mut book = new_file();
 
-    // write values to new sheet
+    // Write the values to a new worksheet.
     for (i, row_values) in values.iter().enumerate() {
         for (j, cell_value) in row_values.iter().enumerate() {
             let cell_ref = format!("{}{}", (j as u8 + b'A') as char, i + 1);
@@ -29,27 +31,12 @@ pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
         }
     }
 
+    // Write the workbook to a file at the specified path.
     let path = std::path::Path::new("C:/spread_test_data/ccc.xlsx");
     let _ = writer::xlsx::write(&book, path);
-    //let _ = writer::xlsx::write(&book, path);
 }
 
-pub fn _write_file_vector(path: &PathBuf, values: Vec<Vec<std::string::String>>) {
-    // create workbook and add a new worksheet
-    //let mut _book = reader::xlsx::read(path).unwrap();
-    let mut book = new_file();
-
-    // write values to new sheet
-    for (i, row_values) in values.iter().enumerate() {
-        for (j, cell_value) in row_values.iter().enumerate() {
-            let cell_ref = format!("{}{}", (j as u8 + b'A') as char, i + 1);
-            book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut(&cell_ref).set_value(cell_value);
-        }
-    }
-
-    let _ = writer::xlsx::write(&book, path);
-}
-
+//This function creates vector that contains model parameters
 pub fn _create_model(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<String>> {
     // Create a 2D vector with one row for each device and two columns.
     let mut result = vec![vec!["".to_string(); 2]; devices.len()];
@@ -67,6 +54,9 @@ pub fn _create_model(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<S
     result
 }
 
+
+// This function runs an infinite loop that receives tasks from a channel
+// and processes them accordingly until it receives a QuitProcess task.
 pub fn _task_loop(rx: Receiver<_Task>) {
     let mut running = true;
 
@@ -92,9 +82,9 @@ pub fn _task_loop(rx: Receiver<_Task>) {
     }
 }
 
+//This function starts a new process
 fn _start() {
-    /*Starts a new process.
-
+    /*
     Args:
         message (dict): task message
         processes (dict): running processes
@@ -104,9 +94,8 @@ fn _start() {
     _open_predicer();
     
 }
-
+//Creates a new process.
 fn _create_process() {
-    //Starts a new process.
     Command::new("mspaint")
     .spawn()
     .expect("failed to start paint program");

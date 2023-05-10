@@ -5,8 +5,11 @@ use std::path::PathBuf;
 use std::io::BufReader;
 use umya_spreadsheet::*;
 use std::collections::HashMap;
-//use indexmap::IndexMap;
 use std::fs::File;
+use jlrs::prelude::*;
+use jlrs::data::managed::value::ValueData;
+use jlrs::memory::target::ExtendedTarget;
+use jlrs::data::managed::union_all::UnionAll;
 
 pub type Result<T, E> = std::result::Result<T, E>;
 
@@ -58,19 +61,26 @@ pub fn _read_file(path: &PathBuf) {
     let _ = writer::xlsx::write(&book, path);
 }
 
+// This function writes data to an Excel file
 pub fn _write_file(_path: &PathBuf, _data: Vec<String>) {
+
+    // Create a new empty Excel workbook
     let mut book = new_file();
 
-    // new worksheet
+    // Add a new worksheet to the workbook
     let _ = book.new_sheet("timeseries");
 
+    // Loop over the data and add each string to a new row in the worksheet
     for (row, value) in _data.iter().enumerate() {
         book.get_sheet_mut(&1).unwrap().get_cell_by_column_and_row_mut(&1, &(row as u32)).set_value(value);
     }
-
+    
+    // Write the workbook to the specified file path in Excel (.xlsx) format
     let _ = writer::xlsx::write(&book, _path);
 }
 
+
+// Function to read a list of device names from user input and return as a vector of strings
 pub fn _read_devices() -> Vec<String> {
     let mut devices = Vec::new();
     let mut input = String::new();
@@ -92,6 +102,7 @@ pub fn _read_devices() -> Vec<String> {
     devices
 }
 
+// This function creates a 2D vector with one row for each device and two columns
 fn _create_2d_vector(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<String>> {
     // Create a 2D vector with one row for each device and two columns.
     let mut result = vec![vec!["".to_string(); 2]; devices.len()];
@@ -109,7 +120,10 @@ fn _create_2d_vector(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<S
     result
 }
 
-
+// This function reads a CSV file located at the given file path and returns a HashMap
+// containing the data from the CSV file. The CSV file is expected to have no header row.
+// The function returns a Result type which contains either the HashMap or an error
+// message if the file cannot be read or parsed.
 pub fn _csv_to_hashmap(file_path: PathBuf) -> Result<HashMap<String, String>, Box<dyn Error>> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
@@ -124,31 +138,137 @@ pub fn _csv_to_hashmap(file_path: PathBuf) -> Result<HashMap<String, String>, Bo
             map.insert(key.to_string(), value.to_string());
         }
     }
-
     Ok(map)
 }
 
-
-
-/*
-pub fn get_processes(parameter_map: &HashMap<&str, &str>, process: &str) -> Vec<&str> {
-    let mut parameter2_vec = Vec::new();
-    for (key, value) in parameter_map {
-        let question = format!("Does the system contain {}? Answer yes/no", key);
-        println!("{}", question);
-        let mut answer = String::new();
-        io::stdin().read_line(&mut answer).expect("Failed to read line");
-
-        if answer.trim().to_lowercase() == "yes" && process.contains(key) {
-            parameter2_vec.push(value);
-        }
-    }
-    parameter2_vec
+// This function generates and returns a vector of tuples. 
+//Each tuple contains a string and an integer.
+pub fn _generate_data() -> Vec<(String, i32)> {
+    vec![
+        ("apple".to_string(), 3),
+        ("banana".to_string(), 7),
+        ("cherry".to_string(), 2),
+        ("date".to_string(), 5),
+    ]
 }
-*/
 
+// Convert a slice of pairs of strings and i32's to an `OrderedDict`
+pub fn _to_ordered_dict<'target, T>(
+    target: ExtendedTarget<'target, '_, '_, T>,
+    data: &[(String, i32)],
+) -> JlrsResult<ValueData<'target, 'static, T>>
+where
+    T: Target<'target>,
+{
+    // An extended target provides a target for the result we want to return and a frame for
+    // temporary data.
+    let (target, frame) = target.split();
+    frame.scope(|mut frame| {
+        // Get OrderedDict, load OrderedCollections if it can't be found. An error is returned if
+        // OrderedCollections hasn't been installed yet.
+        // OrderedDict is a UnionAll because it has type parameters that must be set
+        let ordered_dict = Module::main(&frame).global(&mut frame, "OrderedDict");
+        let ordered_dict_ua = match ordered_dict {
+            Ok(ordered_dict) => ordered_dict,
+            Err(_) => {
+                // Safety: using this package is fine.
+                unsafe {
+                    Value::eval_string(&mut frame, "using OrderedCollections")
+                        .into_jlrs_result()?
+                };
+                Module::main(&frame).global(&mut frame, "OrderedDict")?
+            }
+        }
+        .cast::<UnionAll>()?;
+        // The key and value type.
+        let types = [
+            DataType::string_type(&frame).as_value(),
+            DataType::int32_type(&frame).as_value(),
+        ];
+        // Apply the types to the OrderedDict UnionAll to create the OrderedDict{String, Int32}
+        // DataType, and call its constructor.
+        //
+        // Safety: the types are correct and the constructor doesn't access any data that might
+        // be in use.
+        let ordered_dict = unsafe {
+            let ordered_dict_ty = ordered_dict_ua
+                .apply_types(&mut frame, types)
+                .into_jlrs_result()?;
+            ordered_dict_ty.call0(&mut frame).into_jlrs_result()?
+        };
+        let setindex_fn = Module::base(&target).function(&mut frame, "setindex!")?;
+        for (key, value) in data {
+            // Create the keys and values in temporary scopes to avoid rooting an arbitrarily
+            // large number of pairs in the current frame.
+            frame.scope(|mut frame| {
+                let key = JuliaString::new(&mut frame, key).as_value();
+                let value = Value::new(&mut frame, *value);
+                // Safety: the ordered dict can only be used in this function until it is
+                // returned, setindex! is a safe function.
+                unsafe {
+                    setindex_fn
+                        .call3(&mut frame, ordered_dict, value, key)
+                        .into_jlrs_result()?;
+                }
+                Ok(())
+            })?;
+        }
+        Ok(ordered_dict.root(target))
+    })
+}
 
+/// Convert a hashmap of strings and i32's to an `OrderedDict`
+pub fn _map_to_ordered_dict<'target, T>(
+    target: ExtendedTarget<'target, '_, '_, T>,
+    data: &HashMap<String, String>,
+) -> JlrsResult<ValueData<'target, 'static, T>>
+where
+    T: Target<'target>,
+{
+    let (target, frame) = target.split();
+    frame.scope(|mut frame| {
+        let ordered_dict = Module::main(&frame).global(&mut frame, "OrderedDict");
+        let ordered_dict_ua = match ordered_dict {
+            Ok(ordered_dict) => ordered_dict,
+            Err(_) => {
+                unsafe {
+                    Value::eval_string(&mut frame, "using OrderedCollections")
+                        .into_jlrs_result()?
+                };
+                Module::main(&frame).global(&mut frame, "OrderedDict")?
+            }
+        }
+        .cast::<UnionAll>()?;
 
+        let types = [
+            DataType::string_type(&frame).as_value(),
+            DataType::int32_type(&frame).as_value(),
+        ];
 
+        let ordered_dict = unsafe {
+            let ordered_dict_ty = ordered_dict_ua
+                .apply_types(&mut frame, types)
+                .into_jlrs_result()?;
+            ordered_dict_ty.call0(&mut frame).into_jlrs_result()?
+        };
+
+        let setindex_fn = Module::base(&target).function(&mut frame, "setindex!")?;
+
+        for (key, value) in data {
+            frame.scope(|mut frame| {
+                let key = JuliaString::new(&mut frame, key).as_value();
+                let value = Value::new(&mut frame, *value);
+
+                unsafe {
+                    setindex_fn
+                        .call3(&mut frame, ordered_dict, value, key)
+                        .into_jlrs_result()?;
+                }
+                Ok(())
+            })?;
+        }
+        Ok(ordered_dict.root(target))
+    })
+}
 
 
