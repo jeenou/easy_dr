@@ -25,7 +25,7 @@ fn main() {
     // This is safe because the included code doesn't do any strange things.
     unsafe {
         let path = PathBuf::from("MyModule.jl");
-        let data = utilities::_generate_data();
+        let _data = utilities::_generate_data();
         if path.exists() {
             julia.include(path).expect("Could not include file");
         } else {
@@ -37,59 +37,30 @@ fn main() {
 
     // An extended target provides a target for the result we want to return and a frame for
     // temporary data.
-    let (target, frame) = target.split();
-    frame.scope(|mut frame| {
-        // Get OrderedDict, load OrderedCollections if it can't be found. An error is returned if
-        // OrderedCollections hasn't been installed yet.
-        // OrderedDict is a UnionAll because it has type parameters that must be set
-        let ordered_dict = Module::main(&frame).global(&mut frame, "OrderedDict");
-        let ordered_dict_ua = match ordered_dict {
-            Ok(ordered_dict) => ordered_dict,
-            Err(_) => {
-                // Safety: using this package is fine.
-                unsafe {
-                    Value::eval_string(&mut frame, "using OrderedCollections")
-                        .into_jlrs_result()?
-                };
-                Module::main(&frame).global(&mut frame, "OrderedDict")?
+    let x = julia.scope(|mut frame| {
+        let data = utilities::_to_ordered_dict(frame.as_extended_target(), &utilities::_generate_data()).unwrap();
+
+            unsafe {
+                Module::main(&frame)
+                    // the submodule doesn't have to be rooted because it's never reloaded.
+                    .submodule(&frame, "MyModule")?
+                    .as_managed()
+                    // the same holds true for the function: the module is never reloaded so it's
+                    // globally rooted
+                    .function(&frame, "print_ordered_dict")?
+                    .as_managed()
+                    // Call the function with the two arguments it takes
+                    .call1(&mut frame, data)
+                    // If you don't want to use the exception, it can be converted to a `JlrsError`
+                    // In this case the error message will contain the message that calling
+                    // `display` in Julia would show
+                    .into_jlrs_result()?.unbox::<i64>()
             }
-        }
-        .cast::<UnionAll>()?;
-        // The key and value type.
-        let types = [
-            DataType::string_type(&frame).as_value(),
-            DataType::int32_type(&frame).as_value(),
-        ];
-        // Apply the types to the OrderedDict UnionAll to create the OrderedDict{String, Int32}
-        // DataType, and call its constructor.
-        //
-        // Safety: the types are correct and the constructor doesn't access any data that might
-        // be in use.
-        let ordered_dict = unsafe {
-            let ordered_dict_ty = ordered_dict_ua
-                .apply_types(&mut frame, types)
-                .into_jlrs_result()?;
-            ordered_dict_ty.call0(&mut frame).into_jlrs_result()?
-        };
-        let setindex_fn = Module::base(&target).function(&mut frame, "setindex!")?;
-        for (key, value) in data {
-            // Create the keys and values in temporary scopes to avoid rooting an arbitrarily
-            // large number of pairs in the current frame.
-            frame.scope(|mut frame| {
-                let key = JuliaString::new(&mut frame, key).as_value();
-                let value = Value::new(&mut frame, *value);
-                // Safety: the ordered dict can only be used in this function until it is
-                // returned, setindex! is a safe function.
-                unsafe {
-                    setindex_fn
-                        .call3(&mut frame, ordered_dict, value, key)
-                        .into_jlrs_result()?;
-                }
-                Ok(())
-            })?;
-        }
-        Ok(ordered_dict.root(target))
-    })
+
+
+    }).expect("result is an error"); 
+
+    println!("{}", x);
 
     // Do something with the returned ordered dictionary...
 

@@ -217,7 +217,9 @@ where
     })
 }
 
-/// Convert a hashmap of strings and i32's to an `OrderedDict`
+
+
+/*
 pub fn _map_to_ordered_dict<'target, T>(
     target: ExtendedTarget<'target, '_, '_, T>,
     data: &HashMap<String, String>,
@@ -270,5 +272,6 @@ where
         Ok(ordered_dict.root(target))
     })
 }
+*/
 
 
