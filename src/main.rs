@@ -2,6 +2,7 @@
 use std::sync::mpsc::{Sender};
 mod main_loop;
 mod utilities;
+mod julia_interface;
 use jlrs::prelude::*;
 use std::path::PathBuf;
 
@@ -38,12 +39,12 @@ fn main() {
     // An extended target provides a target for the result we want to return and a frame for
     // temporary data.
     let x = julia.scope(|mut frame| {
-        let data = utilities::_to_ordered_dict(frame.as_extended_target(), &utilities::_generate_data()).unwrap();
+        let data = julia_interface::_to_ordered_dict(frame.as_extended_target(), &utilities::_generate_data()).unwrap();
 
-            //tee tästä rust-funktio
+            
             let module = "MyModule";
             let function = "print_ordered_dict";
-            utilities::_call_julia_function(frame, module, function, data)
+            julia_interface::_call_julia_function(frame, module, function, data)
 
 
     }).expect("result is an error"); 
