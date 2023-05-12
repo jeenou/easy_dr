@@ -3,6 +3,7 @@ use std::fs;
 use std::error::Error;
 use std::path::PathBuf;
 use std::io::BufReader;
+use jlrs::memory::target::frame::GcFrame;
 use umya_spreadsheet::*;
 use std::collections::HashMap;
 use std::fs::File;
@@ -217,7 +218,19 @@ where
     })
 }
 
-
+pub fn _call_julia_function(mut frame: GcFrame, module: &str, function: &str, data: Value) -> JlrsResult<i64> {
+    unsafe {
+        Module::main(&frame)
+            .submodule(&frame, module)?
+            .as_managed()
+            .function(&frame, function)?
+            .as_managed()
+            .call1(&mut frame, data)
+            .into_jlrs_result()?
+            //result is not always i64
+            .unbox::<i64>()
+    }
+}
 
 /*
 pub fn _map_to_ordered_dict<'target, T>(
