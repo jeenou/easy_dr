@@ -51,6 +51,17 @@ fn main() {
 
     println!("{}", x);
 
+    //system_data
+    //timeseries_data
+    //timeseries_data["scenarios"]
+    //processes, string, Predicer.Process
+    //nodes, String, Predicer.Node
+    //markets, String, Predicer.Market
+    //scenarios, String, Float64
+    //reserve_type, String, Float64
+    //risk, String, Float64
+    //gen_constraints, String, Predicer.GenConstraint
+
     //nämä liittyy main_looppiin:
     //let (tx, rx) = channel();
     //start_sending(tx);
