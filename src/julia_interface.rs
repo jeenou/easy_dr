@@ -3,6 +3,7 @@ use jlrs::prelude::*;
 use jlrs::data::managed::value::ValueData;
 use jlrs::memory::target::ExtendedTarget;
 use jlrs::data::managed::union_all::UnionAll;
+use jlrs::error::JlrsError;
 
 // Convert a slice of pairs of strings and i32's to an `OrderedDict`
 pub fn _to_ordered_dict<'target, T>(
@@ -125,6 +126,7 @@ where
                 // Safety: the ordered dict can only be used in this function until it is
                 // returned, setindex! is a safe function.
                 unsafe {
+                    //kokeile toimiiko apufunktio tässä
                     setindex_fn
                         .call3(&mut frame, ordered_dict, value, key)
                         .into_jlrs_result()?;
@@ -138,16 +140,19 @@ where
 
 // Calls a Julia function with the specified module name, function name, and data argument.
 // Returns the result of the function as an i64 integer, or an error if the call fails.
-pub fn _call_julia_function(mut frame: GcFrame, module: &str, function: &str, data: Value) -> JlrsResult<i64> {
+pub fn _call_julia_function<'a>(mut frame: GcFrame, module: &str, function: &str, data1: Value, data2: Value, data3: Value) -> Result<jlrs::prelude::Value<'a, 'a>, std::boxed::Box<JlrsError>> {
     unsafe {
         Module::main(&frame)
             .submodule(&frame, module)?
             .as_managed()
             .function(&frame, function)?
             .as_managed()
-            .call1(&mut frame, data)
-            .into_jlrs_result()?
+            //geneerinen call on olemassa myös
+            .call3(&mut frame, data1, data2, data3)
+            .into_jlrs_result()
+            
             //result is not always i64
-            .unbox::<i64>()
+            //result would be Julia struct in some cases, how can we handle it? 
+            //how we can use the result of the julia function in another julia function?
     }
 }
