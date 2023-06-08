@@ -24,7 +24,7 @@ pub fn _call_julia_function<'scope, 'a>(mut frame: GcFrame<'scope>, module: &str
     }
 }
 
-pub fn _test<T>() {
+pub fn _test<T>(a1: isize, a2: bool, a3: &str) {
     let mut frame = StackFrame::new(); 
     let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
     let mut julia = pending.instance(&mut frame);
@@ -47,14 +47,14 @@ pub fn _test<T>() {
     // temporary data.
     let _x = julia.scope(|mut frame| {
         //let data = julia_interface::_to_ordered_dict(frame.as_extended_target(), &utilities::_generate_data()).unwrap();
-        let data1 = Value::new(&mut frame, 4isize); 
-        let data2 = Value::new(&mut frame, 4isize); //JuliaString, data->managed->string
-        let data3 = Value::new(&mut frame, 4isize); 
+        let data1 = Value::new(&mut frame, a1); 
+        let data2 = Value::new(&mut frame, a2); //JuliaString, data->managed->string
+        let data3 = JuliaString::new(&mut frame, a3).as_value(); 
         
 
             
-            let module = "Structures"; //B
-            let function = "Test"; //B
+            let module = "Structures";
+            let function = "Test2"; 
             let _y = _call_julia_function(frame, module, function, data1, data2, data3);
             Ok(())
 
@@ -62,7 +62,7 @@ pub fn _test<T>() {
     }).expect("result is an error"); 
 }
 
-pub fn _node<T>() {
+pub fn _node<T>(name: &str, is_commodity: bool, is_market: bool) {
     let mut frame = StackFrame::new(); 
     let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
     let mut julia = pending.instance(&mut frame);
@@ -71,7 +71,6 @@ pub fn _node<T>() {
     // This is safe because the included code doesn't do any strange things.
     unsafe {
         let path = PathBuf::from("structures.jl");
-        //let _data = utilities::_generate_data();
         if path.exists() {
             julia.include(path).expect("Could not include file");
         } else {
@@ -84,16 +83,16 @@ pub fn _node<T>() {
     // An extended target provides a target for the result we want to return and a frame for
     // temporary data.
     let _x = julia.scope(|mut frame| {
-        //let data = julia_interface::_to_ordered_dict(frame.as_extended_target(), &utilities::_generate_data()).unwrap();
-        let data1 = Value::new(&mut frame, 4isize); 
-        let data2 = Value::new(&mut frame, 4isize); //JuliaString, data->managed->string
-        let data3 = Value::new(&mut frame, 4isize); 
+
+        let n_name = JuliaString::new(&mut frame, name).as_value(); 
+        let n_commodity = Value::new(&mut frame, is_commodity); 
+        let n_market = Value::new(&mut frame, is_market); 
         
 
             
-            let module = "Structures"; //B
-            let function = "Test"; //B
-            let _y = _call_julia_function(frame, module, function, data1, data2, data3);
+            let module = "Structures"; 
+            let function = "Node2"; 
+            let _y = _call_julia_function(frame, module, function, n_name, n_commodity, n_market);
             Ok(())
 
 

@@ -15,7 +15,11 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    model_builder::_test::<()>();
+    let n1 = "moi";
+    let n2 = true;
+    let n3 = false;
+    model_builder::_node::<()>(n1,n2,n3);
+    //model_builder::_node::<()>(node_name, is_commodity, is_market);
 
-    
+
 }
