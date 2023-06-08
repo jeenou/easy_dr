@@ -45,14 +45,15 @@ fn main() {
     let _x = julia.scope(|mut frame| {
         //let data = julia_interface::_to_ordered_dict(frame.as_extended_target(), &utilities::_generate_data()).unwrap();
         let data1 = Value::new(&mut frame, 4isize); 
-        let data2 = Value::new(&mut frame, 4isize); 
+        let data2 = Value::new(&mut frame, 4isize); //JuliaString, data->managed->string
         let data3 = Value::new(&mut frame, 4isize); 
         
 
             
             let module = "Structures"; //B
-            let function = "test"; //B
-            model_builder::_call_julia_function(frame, module, function, data1, data2, data3)
+            let function = "Test"; //B
+            let _y = model_builder::_call_julia_function(frame, module, function, data1, data2, data3);
+            Ok(())
 
 
     }).expect("result is an error"); 
