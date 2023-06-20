@@ -44,9 +44,9 @@ pub fn _call_julia_function3<'target, 'data, T: Target<'target>>(
     target: T, 
     module: &str, 
     function: &str, 
-    data_1: Value<'_, 'data1>,
-    data_2: Value<'_, 'data2>,
-    data_3: Value<'_, 'data3>
+    data_1: Value<'_, 'data>,
+    data_2: Value<'_, 'data>,
+    data_3: Value<'_, 'data>
 ) -> JlrsResult<ValueResult<'target, 'data, T>> {
     unsafe {
         let res = Module::main(&target)
@@ -204,23 +204,16 @@ pub fn _node2<T>(name: &str, is_commodity: bool, is_market: bool) {
             
         let module = "Structures"; 
         let function = "create_node"; 
-        let _result_node = _call_julia_function3(frame, module, function, n_name, n_commodity, n_market);
+        let _result_node = _call_julia_function3(frame, module, function, n_name, n_commodity, n_market).unwrap();
         
 
         //Convert node to commodity if is_commodity is true
 
         if is_commodity {
-            match _result_node {
-                Ok(value) => {
-                    let convert_function = "convert_to_commodity";
-                    let convert_result = _call_julia_function1(frame, module, convert_function, value);
-                    match convert_result {
-                        Ok(_) => println!("Node converted to commodity"),
-                        Err(error) => println!("Error converting node to commodity: {:?}", error),
-                    }
-                }
-                Err(error) => println!("Error creating node: {:?}", error),
-            }
+
+            let convert_function = "convert_to_commodity";
+            let convert_result = _call_julia_function1(frame, module, convert_function, _result_node);
+
         }
 
          Ok(())
