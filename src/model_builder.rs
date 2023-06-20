@@ -174,11 +174,11 @@ pub fn _node<T>(name: &str, is_commodity: bool, is_market: bool) {
 
 }
 
-pub fn _node2<T>(name: &str, is_commodity: bool, is_market: bool) {
-    let mut frame = StackFrame::new(); 
+pub fn _node2(name: &str, is_commodity: bool, is_market: bool) {
+    let mut frame = StackFrame::new();
     let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
     let mut julia = pending.instance(&mut frame);
-
+    
     // Include some custom code defined in MyModule.jl.
     // This is safe because the included code doesn't do any strange things.
     unsafe {
@@ -191,35 +191,42 @@ pub fn _node2<T>(name: &str, is_commodity: bool, is_market: bool) {
                 .expect("Could not include file");
         }
     }
-
+    
     // An extended target provides a target for the result we want to return and a frame for
     // temporary data.
     let _x = julia.scope(|mut frame| {
-
+    
         let n_name = JuliaString::new(&mut frame, name).as_value(); 
         let n_commodity = Value::new(&mut frame, is_commodity); 
         let n_market = Value::new(&mut frame, is_market); 
         
-
+    
             
         let module = "Structures"; 
         let function = "create_node"; 
         let _result_node = _call_julia_function3(frame, module, function, n_name, n_commodity, n_market).unwrap();
         
-
+    
         //Convert node to commodity if is_commodity is true
 
+    
         if is_commodity {
-
-            let convert_function = "convert_to_commodity";
-            let convert_result = _call_julia_function1(frame, module, convert_function, _result_node);
-
+            match _result_node {
+                Ok(value) => {
+                    let _convert_function = "convert_to_commodity";
+                    let _convert_result = _call_julia_function1(frame, module, _convert_function, value).unwrap();
+                    match _convert_result {
+                        Ok(_) => println!("Node converted to commodity"),
+                        Err(error) => println!("Error converting node to commodity: {:?}", error),
+                    }
+                }
+                Err(error) => println!("Error creating node: {:?}", error),
+            }
         }
-
+    
          Ok(())
         
     }).expect("result is an error");
-
-}
+    
 
 
