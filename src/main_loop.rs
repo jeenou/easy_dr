@@ -2,62 +2,19 @@
 use std::sync::mpsc::{Receiver};
 use std::process::{Command, Stdio};
 use std::io::Write;
-use std::path::{PathBuf, Path};
+use std::path::PathBuf;
+use std::fs;
+use std::path::Path;
 use umya_spreadsheet::*;
 
-// Define an enum for representing different types of tasks
 pub enum _Task {
-    StartProcess,   // A task to start a process
-    QuitProcess     // A task to quit a process
-}
-
-// Check if a directory exists at the given path
-fn _directory_exists(path: &str) -> bool {
-    let dir = Path::new(path);  // Create a Path object from the path string
-    dir.exists() && dir.is_dir()  // Check if the path exists and is a directory
-}
-
-// This function takes a vector of vectors of strings as input 
-// and writes the data to an Excel file.
-pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
-    // Create a new Excel workbook.
-    let mut book = new_file();
-
-    // Write the values to a new worksheet.
-    for (i, row_values) in values.iter().enumerate() {
-        for (j, cell_value) in row_values.iter().enumerate() {
-            let cell_ref = format!("{}{}", (j as u8 + b'A') as char, i + 1);
-            book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut(&cell_ref).set_value(cell_value);
-        }
-    }
-
-    // Write the workbook to a file at the specified path.
-    let path = std::path::Path::new("C:/spread_test_data/ccc.xlsx");
-    let _ = writer::xlsx::write(&book, path);
-}
-
-//This function creates vector that contains model parameters
-pub fn _create_model(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<String>> {
-    // Create a 2D vector with one row for each device and two columns.
-    let mut result = vec![vec!["".to_string(); 2]; devices.len()];
-
-    // Fill in the first column with the device names.
-    for (i, device) in devices.iter().enumerate() {
-        result[i][0] = device.to_string();
-    }
-
-    // Fill in the second column with the parameter names.
-    for (i, param) in parameters.iter().enumerate() {
-        result[i][1] = param.to_string();
-    }
-
-    result
+    StartProcess,
+    QuitProcess
 }
 
 
-// This function runs an infinite loop that receives tasks from a channel
-// and processes them accordingly until it receives a QuitProcess task.
-pub fn _task_loop(rx: Receiver<_Task>) {
+
+pub fn task_loop(rx: Receiver<_Task>) {
     let mut running = true;
 
     while running {
@@ -82,26 +39,63 @@ pub fn _task_loop(rx: Receiver<_Task>) {
     }
 }
 
-//This function starts a new process
 fn _start() {
-    /*
+    /*Starts a new process.
+
     Args:
         message (dict): task message
         processes (dict): running processes
         logs (dict): process logs
     */
 
-    _open_predicer();
+    open_predicer();
     
 }
-//Creates a new process.
+
 fn _create_process() {
+    //Starts a new process.
     Command::new("mspaint")
     .spawn()
     .expect("failed to start paint program");
 }
 
-fn _open_predicer() {
+pub fn _get_newest_file(folder_path: PathBuf) -> Option<PathBuf> {
+    let path = folder_path.as_path();
+    let folder = Path::new(path);
+
+    // Read the contents of the folder
+    let entries = match fs::read_dir(folder) {
+        Ok(entries) => entries,
+        Err(_) => return None, // Unable to read the folder
+    };
+
+    let mut newest_file: Option<PathBuf> = None;
+    let mut newest_modified_time: Option<std::time::SystemTime> = None;
+
+    // Iterate through the files in the folder
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+
+            // Retrieve metadata for the file
+            let metadata = match fs::metadata(&path) {
+                Ok(metadata) => metadata,
+                Err(_) => continue, // Unable to access metadata, skip the file
+            };
+
+            // Check if the file is newer than the current newest file
+            let modified_time = metadata.modified().ok()?;
+            if newest_modified_time.is_none() || modified_time > newest_modified_time.unwrap() {
+                newest_file = Some(path.clone());
+                newest_modified_time = Some(modified_time);
+            }
+        }
+    }
+
+    newest_file
+}
+
+pub fn open_predicer() {
     //Starts Predicer.
 
     let mut path = PathBuf::from("src");
@@ -133,7 +127,21 @@ fn _open_predicer() {
 fn _quit_process() {
     //Terminates a running process
 }
-/*
+
+pub fn _read_file(path: &PathBuf) {
+    //read a file
+    let book = reader::xlsx::read(path).unwrap();
+    let a1_value = book.get_sheet_by_name("npe").unwrap().get_value("A1");
+    println!("{}", a1_value);
+}
+
+pub fn _write_file(path: &PathBuf) {
+    //read a file
+    let mut book = reader::xlsx::read(path).unwrap();
+    book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut("A1").set_value("TEST1");
+    let _ = writer::xlsx::write(&book, path);
+}
+
 #[test]
 fn test_create_process() {
     _create_process();
@@ -145,30 +153,4 @@ fn test_create_process() {
 
     let output = String::from_utf8_lossy(&result.stdout);
     assert!(output.contains("mspaint.exe"), "mspaint.exe not found in tasklist output");
-}
-*/
-
-#[test]
-fn test_open_predicer() {
-    let mut dir = PathBuf::from("src");
-    dir.push("Predicer/results");
-
-    if !dir.exists() {
-        let mut dir_path = PathBuf::from("src");
-        dir_path.push("Predicer/results");
-        _open_predicer();
-        let dir_exists = dir_path.exists() && dir_path.is_dir();
-        assert!(dir_exists, "Directory {} does not exist", dir_path.display());
-
-    }
-    else {
-        let new_dir_path = PathBuf::from("src/Predicer/results");
-
-        let before_files = fs::read_dir(&new_dir_path).unwrap().count();
-        _open_predicer();
-        let after_files = fs::read_dir(&new_dir_path).unwrap().count();
-
-        assert!(after_files > before_files, "Error: no new files were created");
-    }
-
 }
