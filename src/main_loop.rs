@@ -128,12 +128,28 @@ fn _quit_process() {
     //Terminates a running process
 }
 
-pub fn _read_file(path: &PathBuf) {
-    //read a file
+pub fn _read_file(path: &PathBuf) -> Result<f32, ()> {
+    // Read a file
     let book = reader::xlsx::read(path).unwrap();
-    let a1_value = book.get_sheet_by_name("npe").unwrap().get_value("A1");
+    let a1_value = book.get_sheet_by_name("npe").unwrap().get_value("C2");
     println!("{}", a1_value);
+
+    let result: Result<f32, _> = a1_value.parse::<f32>();
+
+    match result {
+        Ok(num) => {
+            println!("Parsed floating-point: {}", num);
+            // Now you can use the parsed floating-point number in your code
+            Ok(num) // Return the parsed floating-point number
+        }
+
+        Err(_) => {
+            println!("Failed to parse the string as a floating-point number");
+            Err(()) // Return an error value
+        }
+    }
 }
+
 
 pub fn _write_file(path: &PathBuf) {
     //read a file
