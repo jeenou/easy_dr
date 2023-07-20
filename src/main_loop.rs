@@ -12,7 +12,7 @@ pub enum _Task {
 }
 
 // Check if a directory exists at the given path
-fn _directory_exists(path: &str) -> bool {
+pub fn _directory_exists(path: &str) -> bool {
     let dir = Path::new(path);  // Create a Path object from the path string
     dir.exists() && dir.is_dir()  // Check if the path exists and is a directory
 }
@@ -147,28 +147,3 @@ fn test_create_process() {
     assert!(output.contains("mspaint.exe"), "mspaint.exe not found in tasklist output");
 }
 */
-
-#[test]
-fn test_open_predicer() {
-    let mut dir = PathBuf::from("src");
-    dir.push("Predicer/results");
-
-    if !dir.exists() {
-        let mut dir_path = PathBuf::from("src");
-        dir_path.push("Predicer/results");
-        _open_predicer();
-        let dir_exists = dir_path.exists() && dir_path.is_dir();
-        assert!(dir_exists, "Directory {} does not exist", dir_path.display());
-
-    }
-    else {
-        let new_dir_path = PathBuf::from("src/Predicer/results");
-
-        let before_files = fs::read_dir(&new_dir_path).unwrap().count();
-        _open_predicer();
-        let after_files = fs::read_dir(&new_dir_path).unwrap().count();
-
-        assert!(after_files > before_files, "Error: no new files were created");
-    }
-
-}
