@@ -117,8 +117,6 @@ pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64) {
     let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
     let mut julia = pending.instance(&mut frame);
 
-    let mut result:  Result<Value<'_, '_>, Box<JlrsError>>;
-
     // Include some custom code defined in MyModule.jl.
     // This is safe because the included code doesn't do any strange things.
     unsafe {
@@ -143,14 +141,16 @@ pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64) {
                   
         let module = "Structures"; 
         let function = "print_message"; 
-        let result = juliainterface::_call4(&mut frame, module, function,[d1, d2, d3, d4]).unwrap().into_jlrs_result();    
+        juliainterface::_call3(&mut frame, module, function,d1, d2, d3, d4).unwrap().into_jlrs_result()    
     
-        result
+
         
     }).expect("result is an error");
     
 
 }
+
+/* 
 
 pub fn contains_reserves(nodes: &HashMap<String, Node>) -> bool {
     if nodes.is_empty() {
@@ -537,3 +537,5 @@ pub fn _julia_frame(node: Node, process: Process, scenario: Scenario, _sources: 
     
 
 }
+
+*/

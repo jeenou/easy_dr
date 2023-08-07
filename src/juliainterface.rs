@@ -11,11 +11,15 @@ pub mod juliainterface {
     use jlrs::prelude::*;
     use jlrs::data::managed::value::ValueResult;
 
+    
     pub fn _call4<'target, 'data, T: Target<'target>>(
         target: T, 
         module: &str, 
         function: &str, 
-        data: [Value<'_, 'data,Value<'_, 'data,Value<'_, 'data,Value<'_, 'data>]
+        data1: Value<'_, 'data>,
+        data2: Value<'_, 'data>,
+        data3: Value<'_, 'data>,
+        data4: Value<'_, 'data>
         
     ) -> JlrsResult<ValueResult<'target, 'data, T>> {
         unsafe {
@@ -24,11 +28,12 @@ pub mod juliainterface {
                 .as_managed()
                 .function(&target, function)?
                 .as_managed()
-                .call(target, data);
+                .call(target, [data1, data2, data3, data4]);
     
             Ok(res)
         }
     }
+    
 
     pub fn _call1<'target, 'data, T: Target<'target>>(
         target: T, 
