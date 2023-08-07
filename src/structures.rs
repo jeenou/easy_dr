@@ -3,7 +3,7 @@ use std::{path::PathBuf};
 //use jlrs::memory::target::frame::GcFrame;
 //use jlrs::data::managed::value::ValueResult;
 use crate::juliainterface::{juliainterface};
-//use jlrs::error::JlrsError;
+use jlrs::error::JlrsError;
 use std::collections::HashMap;
 
 pub struct Process {
@@ -74,10 +74,10 @@ pub struct Node<'a> {
 }
 
 
-pub struct Market<'a> {
+pub struct Market {
     name: String,
     m_type: String,
-    node: Node<'a>, //mikä tyyppi
+    node: String, //mikä tyyppi
     direction: String,
     realisation: f64,
     reserve_type: String,
@@ -112,7 +112,45 @@ risk::OrderedDict{String, Float64}
 gen_constraints::OrderedDict{String, GenConstraint}
 */
 
+pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64) {
+    let mut frame = StackFrame::new();
+    let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+    let mut julia = pending.instance(&mut frame);
 
+    let mut result:  Result<Value<'_, '_>, Box<JlrsError>>;
+
+    // Include some custom code defined in MyModule.jl.
+    // This is safe because the included code doesn't do any strange things.
+    unsafe {
+        let path = PathBuf::from("structures.jl");
+        if path.exists() {
+            julia.include(path).expect("Could not include file");
+        } else {
+            julia
+                .include("src/Predicer/src/structures.jl")
+                .expect("Could not include file");
+        }
+    }
+    
+    // An extended target provides a target for the result we want to return and a frame for
+    // temporary data.
+    let _x = julia.scope(|mut frame| {
+    
+        let d1 = Value::new(&mut frame, da1);
+        let d2 = Value::new(&mut frame, da2); 
+        let d3 = Value::new(&mut frame, da3); 
+        let d4 = Value::new(&mut frame, da4);  
+                  
+        let module = "Structures"; 
+        let function = "print_message"; 
+        let result = juliainterface::_call4(&mut frame, module, function,[d1, d2, d3, d4]).unwrap().into_jlrs_result();    
+    
+        result
+        
+    }).expect("result is an error");
+    
+
+}
 
 pub fn contains_reserves(nodes: &HashMap<String, Node>) -> bool {
     if nodes.is_empty() {
@@ -397,6 +435,12 @@ pub fn _julia_frame(node: Node, process: Process, scenario: Scenario, _sources: 
                     //Muodostetaan sources ja sinks listat, koska add_topology funktio tehdään erikseen sourceille ja sinkeille
 
                     //add_topology
+
+                    //ongelma, miten kutsua jotain funktiota, millä on useampi kuin 3 
+
+                    for so in _sources {
+
+                    }
 
                 }
                 Err(error) => println!("Error creating is_res node: {:?}", error),

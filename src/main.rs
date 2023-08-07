@@ -16,11 +16,21 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    let _nodes: HashMap<String, structures::Node>;
+    let data1 = 1;
+    let data2 = 2;
+    let data3 = 3;
+    let data4 = 4;
+
+    structures::_test(data1, data2, data3, data4);
+
+
+    /* 
+
     let _processes: HashMap<String, structures::Process>;
+    let _nodes: HashMap<String, structures::Node>;
     let _markets: HashMap<String, structures::Market>;
     let _scenarios: HashMap<String, f64>;
-    let _reserve_type: HashMap<String, f64>;
+    let _reserve_type: HashMap<String, f64>; //tähän vaan key: reserve type ja value: ramp_factor
     let _risk: HashMap<String, f64>;
     let _gen_constraints: HashMap<String, structures::GenConstraint>;
     let mut _sources: HashMap<&String, &structures::Topology> = HashMap::new();
@@ -55,7 +65,7 @@ fn main() {
         ts_data: time_series_data_vec,
     };
 
-    //Creating sinks and sources
+    //Creating Topology: sinks and sources
 
     let _electricheater_sink = structures::Topology {
         source: false,
@@ -125,5 +135,61 @@ fn main() {
         cost: &time_series_data,
         inflow: &time_series_data,
     };
+
+    //Creating process
+
+    //Mitä eff_ops sisältää?
+
+    let process_vec: Vec<String> = vec![
+        ("eff_ops".to_string()),
+    ];
+
+    let _interiorair = structures::Process {
+        name: String::from("electricheater"),
+        is_cf: false,
+        is_cf_fix: false,
+        is_online: false,
+        is_res: false,
+        conversion: 1, //1,2 tai 3
+        eff: 1.0,
+        load_min: 0.0,
+        load_max: 1.0,
+        start_cost: 0.0,
+        min_online: 0.0,
+        min_offline: 0.0,
+        max_online: 0.0,
+        max_offline: 0.0,
+        initial_state: 0.0,
+        delay: 0.0,
+        eff_ops: process_vec,
+    };
+
+    //Creating markets
+
+    let market_vec: Vec<(String, String)> = vec![
+        ("key1".to_string(), "value1".to_string()),
+        ("key2".to_string(), "value2".to_string()),
+        ("key3".to_string(), "value3".to_string()),
+    ];
+
+    let _npe = structures::Market {
+        name: String::from("npe"),
+        m_type: String::from("energy"),
+        node: String::from("electricitygrid"), //mikä tyyppi
+        direction: String::from("none"),
+        realisation: 0.0,
+        reserve_type: String::from("none"),
+        is_bid: true,
+        price: &time_series_data, //mitä tähän
+        up_price: &time_series_data, //mitä tähän
+        down_price: &time_series_data, // mitä tähän
+        fixed: market_vec, //mitä tähän
+    };
+
+    //Mihin diffuusio luetaan mallissa datasta?
+
+    */
+
+
 
 }

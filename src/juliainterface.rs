@@ -11,6 +11,25 @@ pub mod juliainterface {
     use jlrs::prelude::*;
     use jlrs::data::managed::value::ValueResult;
 
+    pub fn _call4<'target, 'data, T: Target<'target>>(
+        target: T, 
+        module: &str, 
+        function: &str, 
+        data: [Value<'_, 'data,Value<'_, 'data,Value<'_, 'data,Value<'_, 'data>]
+        
+    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
+        unsafe {
+            let res = Module::main(&target)
+                .submodule(&target, module)?
+                .as_managed()
+                .function(&target, function)?
+                .as_managed()
+                .call(target, data);
+    
+            Ok(res)
+        }
+    }
+
     pub fn _call1<'target, 'data, T: Target<'target>>(
         target: T, 
         module: &str, 
