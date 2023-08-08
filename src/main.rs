@@ -6,6 +6,8 @@ mod utilities;
 mod juliainterface;
 mod structures;
 
+use crate::structures::data;
+
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
     
     tx.send(main_loop::_Task::StartProcess).unwrap();
@@ -16,25 +18,18 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    let data1 = 1;
-    let data2 = 2;
-    let data3 = 3;
-    let data4 = 4;
+    let _processes: HashMap<String, data::Process>;
 
-    structures::_test(data1, data2, data3, data4);
-
-
-    /* 
-
-    let _processes: HashMap<String, structures::Process>;
-    let _nodes: HashMap<String, structures::Node>;
-    let _markets: HashMap<String, structures::Market>;
+    /*
+    let _nodes: HashMap<String, data::Node>;
+    let _markets: HashMap<String, data::Market>;
     let _scenarios: HashMap<String, f64>;
     let _reserve_type: HashMap<String, f64>; //tähän vaan key: reserve type ja value: ramp_factor
     let _risk: HashMap<String, f64>;
-    let _gen_constraints: HashMap<String, structures::GenConstraint>;
-    let mut _sources: HashMap<&String, &structures::Topology> = HashMap::new();
-    let mut _sinks: HashMap<&String, &structures::Topology> = HashMap::new();
+    let _gen_constraints: HashMap<String, data::GenConstraint>;
+    let mut _sources: HashMap<&String, &data::Topology> = HashMap::new();
+    let mut _sinks: HashMap<&String, &data::Topology> = HashMap::new();
+    */
 
     //Create timeseries
 
@@ -43,7 +38,7 @@ fn main() {
         ("Data2".to_string(), "Value2".to_string()),
     ];
 
-    let time_series1 = structures::TimeSeries {
+    let time_series1 = data::TimeSeries {
         scenario: "Scenario1".to_string(),
         series: series1,
     };
@@ -52,22 +47,22 @@ fn main() {
         ("Data3".to_string(), "Value3".to_string()),
         ("Data4".to_string(), "Value4".to_string()),
     ];
-    let time_series2 = structures::TimeSeries {
+    let time_series2 = data::TimeSeries {
         scenario: "Scenario2".to_string(),
         series: series2,
     };
 
     // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
-    let time_series_data_vec: Vec<structures::TimeSeries> = vec![time_series1, time_series2];
+    let time_series_data_vec: Vec<data::TimeSeries> = vec![time_series1, time_series2];
 
     // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
-    let time_series_data: structures::TimeSeriesData = structures::TimeSeriesData {
+    let time_series_data: data::TimeSeriesData = data::TimeSeriesData {
         ts_data: time_series_data_vec,
     };
 
     //Creating Topology: sinks and sources
 
-    let _electricheater_sink = structures::Topology {
+    let _electricheater_sink = data::Topology {
         source: false,
         sink: true,
         name: "electricheater".to_string(), //name of the sink
@@ -77,7 +72,7 @@ fn main() {
         ramp_down: 1.0,
     };
 
-    let _electricheater_source = structures::Topology {
+    let _electricheater_source = data::Topology {
         source: true,
         sink: false,
         name: "electricheater".to_string(), //name of the sink
@@ -92,7 +87,7 @@ fn main() {
 
     //Creating nodes
 
-    let _interiorair = structures::Node {
+    let _interiorair = data::Node {
         name: String::from("interiorair"),
         is_commodity: false,
         is_state: true,
@@ -103,7 +98,7 @@ fn main() {
         inflow: &time_series_data,
     };
 
-    let _building_envelope = structures::Node {
+    let _building_envelope = data::Node {
         name: String::from("buildingenvelope"),
         is_commodity: false,
         is_state: true,
@@ -114,7 +109,7 @@ fn main() {
         inflow: &time_series_data,
     };
 
-    let _outside = structures::Node {
+    let _outside = data::Node {
         name: String::from("outside"),
         is_commodity: false,
         is_state: true,
@@ -125,7 +120,7 @@ fn main() {
         inflow: &time_series_data,
     };
 
-    let _electricitygrid = structures::Node {
+    let _electricitygrid = data::Node {
         name: String::from("electricitygrid"),
         is_commodity: false,
         is_state: false,
@@ -144,7 +139,7 @@ fn main() {
         ("eff_ops".to_string()),
     ];
 
-    let _interiorair = structures::Process {
+    let _interiorair = data::Process {
         name: String::from("electricheater"),
         is_cf: false,
         is_cf_fix: false,
@@ -164,6 +159,8 @@ fn main() {
         eff_ops: process_vec,
     };
 
+    /* 
+
     //Creating markets
 
     let market_vec: Vec<(String, String)> = vec![
@@ -172,7 +169,7 @@ fn main() {
         ("key3".to_string(), "value3".to_string()),
     ];
 
-    let _npe = structures::Market {
+    let _npe = data::Market {
         name: String::from("npe"),
         m_type: String::from("energy"),
         node: String::from("electricitygrid"), //mikä tyyppi
@@ -185,8 +182,6 @@ fn main() {
         down_price: &time_series_data, // mitä tähän
         fixed: market_vec, //mitä tähän
     };
-
-    //Mihin diffuusio luetaan mallissa datasta?
 
     */
 
