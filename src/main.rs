@@ -21,7 +21,7 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    let mut _processes: HashMap<String, data::Process> = HashMap::new();
+    /*let mut _processes: HashMap<String, data::Process> = HashMap::new();
 
     //Creating process
 
@@ -75,7 +75,7 @@ fn main() {
     _processes.insert(_electricheater2.name.clone(), _electricheater2);
 
     //functions::processes(&_processes);
-
+    */
     let da1 = 1;
     let da2 = 2;
     let da3 = 3;
