@@ -5,11 +5,8 @@ mod main_loop;
 mod utilities;
 mod juliainterface;
 mod structures;
-mod input_data;
 
 use crate::structures::data;
-use crate::input_data::functions;
-
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
     
@@ -21,69 +18,7 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    let mut _processes: HashMap<String, data::Process> = HashMap::new();
-
-    //Creating process
-
-    //Mitä eff_ops sisältää?
-
-    let process_vec: Vec<String> = vec![
-        ("eff_ops".to_string()),
-    ];
-
-    let _electricheater1 = data::Process {
-        name: String::from("electricheater1"),
-        is_cf: false,
-        is_cf_fix: false,
-        is_online: false,
-        is_res: false,
-        conversion: 1, //1,2 tai 3
-        eff: 1.0,
-        load_min: 0.0,
-        load_max: 1.0,
-        start_cost: 0.0,
-        min_online: 0.0,
-        min_offline: 0.0,
-        max_online: 0.0,
-        max_offline: 0.0,
-        initial_state: 0.0,
-        delay: 0.0,
-        eff_ops: &process_vec,
-    };
-
-    let _electricheater2 = data::Process {
-        name: String::from("electricheater2"),
-        is_cf: false,
-        is_cf_fix: false,
-        is_online: false,
-        is_res: false,
-        conversion: 2, //1,2 tai 3
-        eff: 1.0,
-        load_min: 0.0,
-        load_max: 1.0,
-        start_cost: 0.0,
-        min_online: 0.0,
-        min_offline: 0.0,
-        max_online: 0.0,
-        max_offline: 0.0,
-        initial_state: 0.0,
-        delay: 0.0,
-        eff_ops: &process_vec,
-    };
-
-    _processes.insert(_electricheater1.name.clone(), _electricheater1);
-    _processes.insert(_electricheater2.name.clone(), _electricheater2);
-
-    //functions::processes(&_processes);
-
-    let da1 = 1;
-    let da2 = 2;
-    let da3 = 3;
-    let da4 = 4;
-
-    data::_test(da1, da2, da3, da4);
-
-
+    let _processes: HashMap<String, data::Process>;
 
     /*
     let _nodes: HashMap<String, data::Node>;
@@ -95,8 +30,6 @@ fn main() {
     let mut _sources: HashMap<&String, &data::Topology> = HashMap::new();
     let mut _sinks: HashMap<&String, &data::Topology> = HashMap::new();
     */
-
-    /*
 
     //Create timeseries
 
@@ -198,7 +131,33 @@ fn main() {
         inflow: &time_series_data,
     };
 
-    */
+    //Creating process
+
+    //Mitä eff_ops sisältää?
+
+    let process_vec: Vec<String> = vec![
+        ("eff_ops".to_string()),
+    ];
+
+    let _interiorair = data::Process {
+        name: String::from("electricheater"),
+        is_cf: false,
+        is_cf_fix: false,
+        is_online: false,
+        is_res: false,
+        conversion: 1, //1,2 tai 3
+        eff: 1.0,
+        load_min: 0.0,
+        load_max: 1.0,
+        start_cost: 0.0,
+        min_online: 0.0,
+        min_offline: 0.0,
+        max_online: 0.0,
+        max_offline: 0.0,
+        initial_state: 0.0,
+        delay: 0.0,
+        eff_ops: process_vec,
+    };
 
     /* 
 

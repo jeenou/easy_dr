@@ -10,120 +10,99 @@ pub mod data {
     use jlrs::error::JlrsError;
     use std::collections::HashMap;
 
-    pub struct Process<'a> {
-        pub name: String,
-        pub is_cf: bool,
-        pub is_cf_fix: bool,
-        pub is_online: bool,
-        pub is_res: bool,
-        pub conversion: i64, //1,2 tai 3
-        pub eff: f64,
-        pub load_min: f64,
-        pub load_max: f64,
-        pub start_cost: f64,
-        pub min_online: f64,
-        pub min_offline: f64,
-        pub max_online: f64,
-        pub max_offline: f64,
-        pub initial_state: f64,
-        pub delay: f64,
-        pub eff_ops: &'a Vec<String>,
-    }
-
-    impl<'a> std::fmt::Debug for Process<'a> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            // Write your custom formatting logic here
-            write!(f, "Process {{ /* ... */ }}")
-        }
-    }
-
-    pub struct Node<'a> {
-        pub name: String,
-        pub is_commodity: bool,
-        pub is_state: bool,
-        pub is_res: bool,
-        pub is_market: bool,
-        pub is_inflow: bool,
-        pub cost: &'a TimeSeriesData,
-        pub inflow: &'a TimeSeriesData,
-        
-    }
-
-    impl<'a> std::fmt::Debug for Node<'a> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            // Write your custom formatting logic here
-            write!(f, "Node {{ /* ... */ }}")
-        }
-    }
-
-    pub struct Market {
-        pub name: String,
-        pub m_type: String,
-        pub node: String, //mikä tyyppi
-        pub direction: String,
-        pub realisation: f64,
-        pub reserve_type: String,
-        pub is_bid: bool,
-        pub price: TimeSeriesData,
-        pub up_price: TimeSeriesData,
-        pub down_price: TimeSeriesData,
-        pub fixed: Vec<(String, String)>,
-        
-    }
-
-    impl<'a> std::fmt::Debug for Market {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            // Write your custom formatting logic here
-            write!(f, "Node {{ /* ... */ }}")
-        }
+    pub struct Process {
+        name: String,
+        is_cf: bool,
+        is_cf_fix: bool,
+        is_online: bool,
+        is_res: bool,
+        conversion: i64, //1,2 tai 3
+        eff: f64,
+        load_min: f64,
+        load_max: f64,
+        start_cost: f64,
+        min_online: f64,
+        min_offline: f64,
+        max_online: f64,
+        max_offline: f64,
+        initial_state: f64,
+        delay: f64,
+        eff_ops: Vec<String>,
     }
     
     pub struct Scenario {
-        pub name: String,
-        pub probability: f64,
+        name: String,
+        probability: f64,
     }
     
     
     pub struct Topology {
-        pub source: bool, 
-        pub sink: bool, 
+        source: bool, 
+        sink: bool, 
         pub name: String,
-        pub capacity: f64,
-        pub vom_cost: f64,
-        pub ramp_up: f64,
-        pub ramp_down: f64,
+        capacity: f64,
+        vom_cost: f64,
+        ramp_up: f64,
+        ramp_down: f64,
     }
     
     pub struct State {
-        pub in_max: f64,
-        pub out_max: f64,
-        pub state_loss_proportional: f64,
-        pub state_max: f64,
-        pub state_min: f64,
-        pub initial_state: f64,
-        pub residual_value: f64,
+        in_max: f64,
+        out_max: f64,
+        state_loss_proportional: f64,
+        state_max: f64,
+        state_min: f64,
+        initial_state: f64,
+        residual_value: f64,
     }
     
     pub struct TimeSeries {
-        pub scenario: String,
-        pub series: Vec<(String, String)>,
+        scenario: String,
+        series: Vec<(String, String)>,
     }
     
     pub struct TimeSeriesData {
-        pub ts_data: Vec<TimeSeries>,
+        ts_data: Vec<TimeSeries>,
     }
-
+    
+    pub struct Node<'a> {
+        name: String,
+        is_commodity: bool,
+        is_state: bool,
+        is_res: bool,
+        is_market: bool,
+        is_inflow: bool,
+        cost: &'a TimeSeriesData,
+        inflow: &'a TimeSeriesData,
+        
+    }
+    
+    
+    pub struct Market {
+        name: String,
+        m_type: String,
+        node: String, //mikä tyyppi
+        direction: String,
+        realisation: f64,
+        reserve_type: String,
+        is_bid: bool,
+        price: TimeSeriesData,
+        up_price: TimeSeriesData,
+        down_price: TimeSeriesData,
+        fixed: Vec<(String, String)>,
+        
+    }
     
     pub struct ConFactor {
-        pub flow: (String, String),
-        pub data: TimeSeriesData,
+        flow: (String, String),
+        data: TimeSeriesData,
     }
     
     pub struct GenConstraint {
-        pub name: String,
-        pub g_type: String,
-        pub factors: Vec<ConFactor>,
-        pub constant: TimeSeriesData,
+        name: String,
+        g_type: String,
+        factors: Vec<ConFactor>,
+        constant: TimeSeriesData,
         
     }
     
@@ -137,7 +116,7 @@ pub mod data {
     gen_constraints::OrderedDict{String, GenConstraint}
     */
     
- 
+    
     
     pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64) {
         let mut frame = StackFrame::new();
@@ -149,11 +128,11 @@ pub mod data {
         unsafe {
             let path = PathBuf::from("structures.jl");
             if path.exists() {
-                julia.include(path).expect("Could not include file1");
+                julia.include(path).expect("Could not include file");
             } else {
                 julia
                     .include("src/Predicer/src/structures.jl")
-                    .expect("Could not include file2");
+                    .expect("Could not include file");
             }
         }
         
@@ -179,7 +158,7 @@ pub mod data {
     }
     
     
-       /* 
+    
     
     
     pub fn _julia_frame(node: Node, process: Process, scenario: Scenario, _sources: HashMap<&String, &Topology>, _sinks: HashMap<&String, &Topology>) {
@@ -483,10 +462,7 @@ pub mod data {
     
     }
     
-    */
     
 
 }
-
-
 
