@@ -18,7 +18,14 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
-    let _processes: HashMap<String, data::Process>;
+    //let _processes: HashMap<String, data::Process>;
+
+    let da1 = 1;
+    let da2 = 2;
+    let da3 = 3;
+    let da4 = 4;
+
+    data::_test(da1, da2, da3, da4)
 
     /*
     let _nodes: HashMap<String, data::Node>;
@@ -30,6 +37,8 @@ fn main() {
     let mut _sources: HashMap<&String, &data::Topology> = HashMap::new();
     let mut _sinks: HashMap<&String, &data::Topology> = HashMap::new();
     */
+
+    /* 
 
     //Create timeseries
 
@@ -182,6 +191,8 @@ fn main() {
         down_price: &time_series_data, // mitä tähän
         fixed: market_vec, //mitä tähän
     };
+
+    */
 
     */
 
