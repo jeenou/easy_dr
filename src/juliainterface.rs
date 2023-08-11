@@ -13,7 +13,6 @@ pub mod juliainterface {
 
     pub fn _call4<'target, 'data, T: Target<'target>>(
         target: T, 
-        module: &str, 
         function: &str, 
         data_1: Value<'_, 'data>,
         data_2: Value<'_, 'data>,
@@ -25,8 +24,6 @@ pub mod juliainterface {
 
         unsafe {
             let res = Module::main(&target)
-                .submodule(&target, module)?
-                .as_managed()
                 .function(&target, function)?
                 .as_managed()
                 .call(target, args);

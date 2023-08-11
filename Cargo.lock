@@ -925,6 +925,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12b6ee2129af8d4fb011108c73d99a1b83a85977f23b82460c0ae2e25bb4b57f"
 
 [[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -932,9 +941,9 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 
 [[package]]
 name = "jl-sys"
-version = "0.20.1"
+version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "845e36ab016fc5320fbf541291f32deb5c723dc534cdc2f90f1881650f1ca6e2"
+checksum = "3b79cbfacd231650fd7f034a141dcae87154327c61438395614847a116dff321"
 dependencies = [
  "atomic",
  "cc",
@@ -943,25 +952,32 @@ dependencies = [
 
 [[package]]
 name = "jlrs"
-version = "0.18.0-beta.2"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f37a838cf69c648470b80c71c4449a3e9329bd5e21873b159a0450e8f691d14"
+checksum = "5d7a386dc15a4aa2841dc5a4f519b7f910b8d104804df7e0b624ed247bfb75d8"
 dependencies = [
  "atomic",
  "cfg-if",
+ "fnv",
+ "fxhash",
  "hashers",
  "jl-sys",
  "jlrs-macros",
+ "lock_api",
  "once_cell",
+ "parking_lot",
  "smallvec",
  "thiserror",
 ]
 
 [[package]]
 name = "jlrs-macros"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb8438fb2347bb8a1938f78129c2cdd96db00288cca67b86525cc5c61db88e29"
+checksum = "825649da81546231a7cc658fff5f7d40bd22d33478ccac4244fb7022b7d452dd"
+dependencies = [
+ "itertools",
+]
 
 [[package]]
 name = "jpeg-decoder"
@@ -1218,6 +1234,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fc2dbde8f8a79f2102cc474ceb0ad68e3b80b85289ea62389b60e66777e4213"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
+dependencies = [
+ "lock_api",
+ "parking_lot_core",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93f00c865fe7cabf650081affecd3871070f26767e7b2070a3ffae14c654b447"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_syscall",
+ "smallvec",
+ "windows-targets 0.48.0",
 ]
 
 [[package]]
