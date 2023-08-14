@@ -18,6 +18,15 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
+    let da1 = 1;
+    let da2 = 1;
+    let da3 = 1;
+    let da4 = 1;
+
+    data::_test(da1, da2, da3, da4);
+
+    /* 
+
     let _processes: HashMap<String, data::Process>;
 
     /*
@@ -182,6 +191,8 @@ fn main() {
         down_price: &time_series_data, // mitä tähän
         fixed: market_vec, //mitä tähän
     };
+
+    */
 
     */
 

@@ -122,18 +122,54 @@ pub mod data {
         let mut frame = StackFrame::new();
         let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
         let mut julia = pending.instance(&mut frame);
-    
         // Include some custom code defined in MyModule.jl.
         // This is safe because the included code doesn't do any strange things.
         unsafe {
+            julia.scope(|mut frame| {
+                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\src\\Predicer").as_value();
+                let _ = Module::main(&frame)
+                    .function(&frame, "cd")?
+                    .as_managed()
+                    .call1(&mut frame, predicer_dir).expect("cd to Predicer dir failed");
+                Ok(())
+            }).expect("error when cding to Predicer dir");
+            julia.scope(|mut frame| {
+                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\src\\Predicer").as_value();
+                let _ = Value::eval_string(&mut frame, "using Pkg");
+                let _ = Module::main(&frame)
+                    .submodule(&frame, "Pkg")?
+                    .as_managed()
+                    .function(&frame, "activate")?
+                    .as_managed()
+                    .call1(&mut frame, predicer_dir).expect("activation failed");
+                Ok(())
+            }).expect("error when activating Julia environment");
+            julia.scope(|mut frame| {
+                Module::main(&frame)
+                    .submodule(&frame, "Pkg")?
+                    .as_managed()
+                    .function(&frame, "instantiate")?
+                    .as_managed()
+                    .call0(&mut frame).expect("instatiation failed");
+                    Ok(())
+            }).expect("error when instantiating Julia environment");
+            julia.scope(|mut frame| {
+                let wd = Module::main(&frame)
+                    .function(&frame, "pwd")?
+                    .as_managed()
+                    .call0(&mut frame).into_jlrs_result()?.unbox::<String>().expect("pwd error");
+                println!("working directory {}", wd.expect("not ok"));
+                Ok(())
+            }).expect("error error on the wall");
             let path = PathBuf::from("structures.jl");
             if path.exists() {
                 julia.include(path).expect("Could not include file");
             } else {
                 julia
-                    .include("src/Predicer/src/structures.jl")
-                    .expect("Could not include file");
+                    .include("src\\Predicer\\src\\structures.jl")
+                    .expect("Could not include fileeeee");
             }
+
         }
         
         // An extended target provides a target for the result we want to return and a frame for
@@ -145,7 +181,7 @@ pub mod data {
             let d3 = Value::new(&mut frame, da3); 
             let d4 = Value::new(&mut frame, da4);  
                       
-            let module = "Structures"; 
+            let module = "Structures";
             let function = "print_message"; 
             let _result = juliainterface::_call4(&mut frame, module, function,d1, d2, d3, d4).unwrap().into_jlrs_result();
             Ok(())    
@@ -154,11 +190,10 @@ pub mod data {
             
         }).expect("result is an error");
         
-    
     }
     
     
-    
+    /* 
     
     
     pub fn _julia_frame(node: Node, process: Process, scenario: Scenario, _sources: HashMap<&String, &Topology>, _sinks: HashMap<&String, &Topology>) {
@@ -461,6 +496,8 @@ pub mod data {
         
     
     }
+
+    */
     
     
 
