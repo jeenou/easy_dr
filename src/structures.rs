@@ -126,11 +126,7 @@ pub mod data {
         // This is safe because the included code doesn't do any strange things.
         unsafe {
             julia.scope(|mut frame| {
-<<<<<<< HEAD
                 let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\enessi\\Documents\\easy_dr\\src\\Predicer").as_value();
-=======
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\ajsanttij\\sources\\easy_dr\\src\\Predicer").as_value();
->>>>>>> f8e042218fc5a233617fab055a44d27a85f2705a
                 let _ = Module::main(&frame)
                     .function(&frame, "cd")?
                     .as_managed()
@@ -138,11 +134,7 @@ pub mod data {
                 Ok(())
             }).expect("error when cding to Predicer dir");
             julia.scope(|mut frame| {
-<<<<<<< HEAD
                 let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\enessi\\Documents\\easy_dr\\src\\Predicer").as_value();
-=======
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\ajsanttij\\sources\\easy_dr\\src\\Predicer").as_value();
->>>>>>> f8e042218fc5a233617fab055a44d27a85f2705a
                 Value::eval_string(&mut frame, "using Pkg");
                 let _ = Module::main(&frame)
                     .submodule(&frame, "Pkg")?
@@ -174,11 +166,7 @@ pub mod data {
                 julia.include(path).expect("Could not include file1");
             } else {
                 julia
-<<<<<<< HEAD
                     .include("C:\\users\\enessi\\Documents\\easy_dr\\src\\Predicer\\src\\structures.jl")
-=======
-                    .include("src\\structures.jl")
->>>>>>> f8e042218fc5a233617fab055a44d27a85f2705a
                     .expect("Could not include file2");
             }
         }
@@ -192,15 +180,9 @@ pub mod data {
             let d3 = Value::new(&mut frame, da3); 
             let d4 = Value::new(&mut frame, da4);  
                       
-<<<<<<< HEAD
             let module = "Structures";
             let function = "print_message"; 
             let _result = juliainterface::_call4(&mut frame, module, function, d1, d2, d3, d4).unwrap().into_jlrs_result();
-=======
-            //let module = "Predicer";
-            let function = "print_message"; 
-            let _result = juliainterface::_call4(&mut frame, function,d1, d2, d3, d4).unwrap().into_jlrs_result();
->>>>>>> f8e042218fc5a233617fab055a44d27a85f2705a
             Ok(())    
         
     
