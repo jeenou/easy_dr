@@ -147,7 +147,7 @@ pub mod data {
         // This is safe because the included code doesn't do any strange things.
         unsafe {
             julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\ajsanttij\\sources\\easy_dr\\src\\Predicer").as_value();
+                let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\ajsanttij\\sources\\easy_dr\\Predicer").as_value();
                 let _ = Module::main(&frame)
                     .function(&frame, "cd")?
                     .as_managed()
@@ -155,7 +155,7 @@ pub mod data {
                 Ok(())
             }).expect("error when cding to Predicer dir");
             julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\ajsanttij\\sources\\easy_dr\\src\\Predicer").as_value();
+                let predicer_dir = JuliaString::new(&mut frame, "C:\\users\\ajsanttij\\sources\\easy_dr\\Predicer").as_value();
                 Value::eval_string(&mut frame, "using Pkg");
                 let _ = Module::main(&frame)
                     .submodule(&frame, "Pkg")?
@@ -182,14 +182,8 @@ pub mod data {
                 println!("working directory {}", wd.expect("not ok"));
                 Ok(())
             }).expect("error error on the wall");
-            let path = PathBuf::from("structures.jl");
-            if path.exists() {
-                julia.include(path).expect("Could not include file1");
-            } else {
-                julia
-                    .include("src\\structures.jl")
-                    .expect("Could not include file2");
-            }
+            let path = PathBuf::from("src/structures.jl");
+            julia.include(path).expect("Could not include file1");
         }
         
         // An extended target provides a target for the result we want to return and a frame for
