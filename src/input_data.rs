@@ -1,8 +1,9 @@
 
+/* 
 
 pub mod functions {
 
-    use crate::structures::data;
+    use crate::{structures::data, juliainterface};
     use std::collections::HashMap;
     use jlrs::{prelude::*};
     use std::{path::PathBuf};
@@ -13,7 +14,7 @@ pub mod functions {
 
     //Input data: contains_reserves
     //Boolean arvon voi vain muuttaa julia-booleaniksi ja lähettää lopulta input_data:n tekoon soveltuvalle funktiolle
-    pub fn contains_reserves(nodes: &HashMap<String, data::Node>) -> bool {
+    pub fn _contains_reserves(nodes: &HashMap<String, data::Node>) -> bool {
         if nodes.is_empty() {
             // Perform desired action when the HashMap is empty
             // For example, return false or throw an error
@@ -30,7 +31,7 @@ pub mod functions {
     }
 
     //Input data: contains_online
-    pub fn contains_online(processes: &HashMap<String, data::Process>) -> bool {
+    pub fn _contains_online(processes: &HashMap<String, data::Process>) -> bool {
         if processes.is_empty() {
             // Perform desired action when the HashMap is empty
             // For example, return false or throw an error
@@ -47,7 +48,7 @@ pub mod functions {
     }
 
     //Input data: contains_states
-    pub fn contains_states(nodes: &HashMap<String, data::Node>) -> bool {
+    pub fn _contains_states(nodes: &HashMap<String, data::Node>) -> bool {
         if nodes.is_empty() {
             // Perform desired action when the HashMap is empty
             // For example, return false or throw an error
@@ -64,7 +65,7 @@ pub mod functions {
     }
 
     //Input data: contains_piecewise_eff
-    pub fn contains_piecewise_eff(processes: &HashMap<String, data::Process>) -> bool {
+    pub fn _contains_piecewise_eff(processes: &HashMap<String, data::Process>) -> bool {
         if processes.is_empty() {
             return true;
         }
@@ -86,7 +87,7 @@ pub mod functions {
     */
 
     //Input data: contains_delay
-    pub fn contains_delay(processes: &HashMap<String, data::Process>) -> bool {
+    pub fn _contains_delay(processes: &HashMap<String, data::Process>) -> bool {
         if processes.is_empty() {
             return false;
         }
@@ -101,7 +102,7 @@ pub mod functions {
     }
 
     //Input data: contains_diffusion MUOKKAA TÄMÄ
-    pub fn contains_diffusion(processes: &HashMap<String, data::Process>) -> bool {
+    pub fn _contains_diffusion(processes: &HashMap<String, data::Process>) -> bool {
         if processes.is_empty() {
             return false;
         }
@@ -117,7 +118,7 @@ pub mod functions {
 
     //Processes
 
-    pub fn processes(processes: &HashMap<String, data::Process>) {
+    pub fn _processes(processes: &HashMap<String, data::Process>) {
 
         for (key, value) in processes {
             println!("Key: {}", key);
@@ -159,7 +160,7 @@ pub mod functions {
                     Ok(_process) => {
                         let _add_to_processes = "add_to_processes";
                         let _add_to_processes_result = 
-                        juliainterface::_call1(&mut frame, module, _add_to_processes, _process).unwrap();
+                        julia::_call1(&mut frame, module, _add_to_processes, _process).unwrap();
                     }
                     Err(error) => println!("Error creating process: {:?}", error),
                 }
@@ -171,137 +172,148 @@ pub mod functions {
     
     }
 
-//Nodes
+    //Nodes
 
-pub fn nodes(nodes: &HashMap<String, data::Node>) {
+    pub fn _nodes(nodes: &HashMap<String, data::Node>) {
 
-    for (key, value) in nodes {
-        println!("Key: {}", key);
-        println!("Value: {:?}", value); // Print or use the value as needed
+        for (key, value) in nodes {
+            println!("Key: {}", key);
+            println!("Value: {:?}", value); // Print or use the value as needed
 
-        let mut frame = StackFrame::new();
-        let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
-        let mut julia = pending.instance(&mut frame);
-    
-        // Include some custom code defined in MyModule.jl.
-        // This is safe because the included code doesn't do any strange things.
-        unsafe {
-            let path = PathBuf::from("structures.jl");
-            if path.exists() {
-                julia.include(path).expect("Could not include file");
-            } else {
-                julia
-                    .include("src/Predicer/src/structures.jl")
-                    .expect("Could not include file");
-            }
-        }
+            let mut frame = StackFrame::new();
+            let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+            let mut julia = pending.instance(&mut frame);
         
-        // An extended target provides a target for the result we want to return and a frame for
-        // temporary data.
-        let _x = julia.scope(|mut frame| {
-
-            
-            let name = JuliaString::new(&mut frame, &value.name).as_value();
-            let is_commodity = Value::new(&mut frame, value.is_commodity); 
-            let is_market = Value::new(&mut frame, value.is_market);   
-
-            //Create new process in julia        
-            let module = "Structures"; 
-            let function = "create_node"; 
-            let _node_result = juliainterface::_call3(&mut frame, module, function, name, is_commodity, is_market).unwrap().into_jlrs_result();
-
-            //Add process to ordered dict in julia
-            match _node_result {
-                Ok(_node) => {
-                    let _add_to_nodes = "add_to_nodes";
-                    let _add_to_nodes_result = 
-                    juliainterface::_call1(&mut frame, module, _add_to_nodes, _node).unwrap();
+            // Include some custom code defined in MyModule.jl.
+            // This is safe because the included code doesn't do any strange things.
+            unsafe {
+                let path = PathBuf::from("structures.jl");
+                if path.exists() {
+                    julia.include(path).expect("Could not include file");
+                } else {
+                    julia
+                        .include("src/Predicer/src/structures.jl")
+                        .expect("Could not include file");
                 }
-                Err(error) => println!("Error creating process: {:?}", error),
             }
+            
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+            let _x = julia.scope(|mut frame| {
 
-            Ok(())    
                 
-        }).expect("result is an error");
+                let name = JuliaString::new(&mut frame, &value.name).as_value();
+                let is_commodity = Value::new(&mut frame, value.is_commodity); 
+                let is_market = Value::new(&mut frame, value.is_market);   
+
+                //Create new process in julia        
+                let module = "Structures"; 
+                let function = "create_node"; 
+                let _node_result = juliainterface::_call3(&mut frame, module, function, name, is_commodity, is_market).unwrap().into_jlrs_result();
+
+                //Add process to ordered dict in julia
+                match _node_result {
+                    Ok(_node) => {
+                        let _add_to_nodes = "add_to_nodes";
+                        let _add_to_nodes_result = 
+                        juliainterface::_call1(&mut frame, module, _add_to_nodes, _node).unwrap();
+                    }
+                    Err(error) => println!("Error creating process: {:?}", error),
+                }
+
+                Ok(())    
+                    
+            }).expect("result is an error");
+        }
+
     }
 
-}
+    //Node diffusion tuples
 
-//Node diffusion tuples
+    //Markets
 
-//Markets
+    /* 
 
-/* 
+    pub fn _markets(markets: &HashMap<String, data::Market>) {
 
-pub fn markets(markets: &HashMap<String, data::Market>) {
+        for (key, value) in markets {
+            println!("Key: {}", key);
+            println!("Value: {:?}", value); // Print or use the value as needed
 
-    for (key, value) in markets {
-        println!("Key: {}", key);
-        println!("Value: {:?}", value); // Print or use the value as needed
-
-        let mut frame = StackFrame::new();
-        let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
-        let mut julia = pending.instance(&mut frame);
-    
-        // Include some custom code defined in MyModule.jl.
-        // This is safe because the included code doesn't do any strange things.
-        unsafe {
-            let path = PathBuf::from("structures.jl");
-            if path.exists() {
-                julia.include(path).expect("Could not include file");
-            } else {
-                julia
-                    .include("src/Predicer/src/structures.jl")
-                    .expect("Could not include file");
-            }
-        }
+            let mut frame = StackFrame::new();
+            let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+            let mut julia = pending.instance(&mut frame);
         
-        // An extended target provides a target for the result we want to return and a frame for
-        // temporary data.
-        let _x = julia.scope(|mut frame| {
-
-            
-            let name = JuliaString::new(&mut frame, value.name).as_value();
-            let is_commodity = Value::new(&mut frame, value.is_commodity); 
-            let is_market = Value::new(&mut frame, value.is_market);   
-
-            //Create new process in julia        
-            let module = "Structures"; 
-            let function = "create_node"; 
-            let _node_result = juliainterface::_call3(&mut frame, module, function, name, is_commodity, is_market).unwrap().into_jlrs_result();
-
-            //Add process to ordered dict in julia
-            match _node_result {
-                Ok(_node) => {
-                    let _add_to_nodes = "add_to_nodes";
-                    let _add_to_nodes_result = 
-                    juliainterface::_call1(&mut frame, module, _add_to_nodes, _node).unwrap();
+            // Include some custom code defined in MyModule.jl.
+            // This is safe because the included code doesn't do any strange things.
+            unsafe {
+                let path = PathBuf::from("structures.jl");
+                if path.exists() {
+                    julia.include(path).expect("Could not include file");
+                } else {
+                    julia
+                        .include("src/Predicer/src/structures.jl")
+                        .expect("Could not include file");
                 }
-                Err(error) => println!("Error creating process: {:?}", error),
             }
+            
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+            let _x = julia.scope(|mut frame| {
 
-            Ok(())    
                 
-        }).expect("result is an error");
+                let name = JuliaString::new(&mut frame, value.name).as_value();
+                let is_commodity = Value::new(&mut frame, value.is_commodity); 
+                let is_market = Value::new(&mut frame, value.is_market);   
+
+                //Create new process in julia        
+                let module = "Structures"; 
+                let function = "create_node"; 
+                let _node_result = juliainterface::_call3(&mut frame, module, function, name, is_commodity, is_market).unwrap().into_jlrs_result();
+
+                //Add process to ordered dict in julia
+                match _node_result {
+                    Ok(_node) => {
+                        let _add_to_nodes = "add_to_nodes";
+                        let _add_to_nodes_result = 
+                        juliainterface::_call1(&mut frame, module, _add_to_nodes, _node).unwrap();
+                    }
+                    Err(error) => println!("Error creating process: {:?}", error),
+                }
+
+                Ok(())    
+                    
+            }).expect("result is an error");
+        }
+
+    }
+    */
+
+
+    //Groups
+
+    //Scenarios
+
+    //Tämän voi tehdä ordered-dictillä
+
+    pub fn _scenarios(scenarios: &HashMap<String, f64>){
+
+        juliainterface::_to_ordered_dict(&mut target, scenarios);
+
     }
 
-    
+    //Reserve-type
+
+    //Risk
+
+    //Inflow blocks
+
+    //Gen constraints
+
+
 
 }
 
 */
 
-//Groups
 
-//Scenarios
-
-//Reserve-type
-
-//Risk
-
-//Inflow blocks
-
-//Gen constraints
-
-
-}

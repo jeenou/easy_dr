@@ -4,9 +4,9 @@ pub mod data {
 
     use jlrs::{prelude::*};
     use std::{path::PathBuf};
-    //use jlrs::memory::target::frame::GcFrame;
+    use jlrs::memory::target::frame::GcFrame;
     //use jlrs::data::managed::value::ValueResult;
-    use crate::juliainterface::juliainterface;
+    use crate::juliainterface::julia;
     use jlrs::error::JlrsError;
     use std::collections::HashMap;
 
@@ -139,7 +139,7 @@ pub mod data {
     
  
     
-    pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64) {
+    pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64, data: Vec<(String, i32)>) {
         let mut frame = StackFrame::new();
         let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
         let mut julia = pending.instance(&mut frame);
@@ -189,6 +189,7 @@ pub mod data {
         // An extended target provides a target for the result we want to return and a frame for
         // temporary data.
         let _x = julia.scope(|mut frame| {
+
         
             let d1 = Value::new(&mut frame, da1);
             let d2 = Value::new(&mut frame, da2); 
@@ -197,7 +198,15 @@ pub mod data {
                       
             //let module = "Predicer";
             let function = "print_message"; 
-            let _result = juliainterface::_call4(&mut frame, function,d1, d2, d3, d4).unwrap().into_jlrs_result();
+            let _result = julia::_call4(&mut frame, function,d1, d2, d3, d4).unwrap().into_jlrs_result();
+
+            let _result2 = julia::_to_ordered_dict(frame.as_extended_target(), &data).unwrap();
+
+            let function2 = "print_ordered_dict";
+            let _result3 = julia::_call1(&mut frame, function2, _result2).unwrap().into_jlrs_result();
+
+
+            
             Ok(())    
         
     

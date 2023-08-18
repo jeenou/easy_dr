@@ -8,7 +8,7 @@ mod structures;
 mod input_data;
 
 use crate::structures::data;
-use crate::input_data::functions;
+//use crate::input_data::functions;
 
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
@@ -81,7 +81,16 @@ fn main() {
     let da3 = 3;
     let da4 = 4;
 
-    data::_test(da1, da2, da3, da4);
+    
+
+    let tuple_vector: Vec<(String, i32)> = vec![
+        (String::from("Alice"), 25),
+        (String::from("Bob"), 30),
+        (String::from("Charlie"), 28),
+    ];
+
+    data::_test(da1, da2, da3, da4, tuple_vector);
+
 
 
 
