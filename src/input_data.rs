@@ -1,5 +1,5 @@
 
-/* 
+
 
 pub mod functions {
 
@@ -290,30 +290,7 @@ pub mod functions {
     */
 
 
-    //Groups
-
-    //Scenarios
-
-    //Tämän voi tehdä ordered-dictillä
-
-    pub fn _scenarios(scenarios: &HashMap<String, f64>){
-
-        juliainterface::_to_ordered_dict(&mut target, scenarios);
-
-    }
-
-    //Reserve-type
-
-    //Risk
-
-    //Inflow blocks
-
-    //Gen constraints
-
-
-
 }
 
-*/
 
 

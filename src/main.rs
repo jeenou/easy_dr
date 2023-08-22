@@ -21,6 +21,104 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
+
+
+    //Create timeseries
+
+    let series1: Vec<(String, String)> = vec![
+        ("Data1".to_string(), "Value1".to_string()),
+        ("Data2".to_string(), "Value2".to_string()),
+    ];
+
+    let time_series1 = data::TimeSeries {
+        scenario: "Scenario1".to_string(),
+        series: series1,
+    };
+
+    let series2: Vec<(String, String)> = vec![
+        ("Data3".to_string(), "Value3".to_string()),
+        ("Data4".to_string(), "Value4".to_string()),
+    ];
+    let time_series2 = data::TimeSeries {
+        scenario: "Scenario2".to_string(),
+        series: series2,
+    };
+
+    // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
+    let time_series_data_vec: Vec<data::TimeSeries> = vec![time_series1, time_series2];
+
+    // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
+    let time_series_data: data::TimeSeriesData = data::TimeSeriesData {
+        ts_data: time_series_data_vec,
+    };
+
+    //Creating nodes
+
+    let _interiorair = data::Node {
+        name: String::from("interiorair"),
+        is_commodity: false,
+        is_state: true,
+        is_res: false,
+        is_market: false,
+        is_inflow: false,
+        cost: &time_series_data,
+        inflow: &time_series_data,
+    };
+
+    let _building_envelope = data::Node {
+        name: String::from("buildingenvelope"),
+        is_commodity: false,
+        is_state: true,
+        is_res: false,
+        is_market: false,
+        is_inflow: false,
+        cost: &time_series_data,
+        inflow: &time_series_data,
+    };
+
+    let _outside = data::Node {
+        name: String::from("outside"),
+        is_commodity: false,
+        is_state: true,
+        is_res: false,
+        is_market: false,
+        is_inflow: true,
+        cost: &time_series_data,
+        inflow: &time_series_data,
+    };
+
+    let _electricitygrid = data::Node {
+        name: String::from("electricitygrid"),
+        is_commodity: false,
+        is_state: false,
+        is_res: false,
+        is_market: false,
+        is_inflow: false,
+        cost: &time_series_data,
+        inflow: &time_series_data,
+    };
+
+    let mut _nodes: HashMap<&String, &data::Node> = HashMap::new();
+
+    _nodes.insert(&_interiorair.name, &_interiorair);
+    _nodes.insert(&_building_envelope.name, &_building_envelope);
+    _nodes.insert(&_outside.name, &_outside);
+    _nodes.insert(&_electricitygrid.name, &_electricitygrid);
+
+    let da1 = 10;
+    let da2 = 20;
+    let da3 = 30;
+    let da4 = 40;
+    let data = vec![
+        ("2022-08-21".to_string(), 10.0),
+        ("2022-08-22".to_string(), 15.0),
+    ];
+
+    data::_test(da1, da2, da3, da4, data);
+
+
+    //data::_predicer(_nodes);
+
     /*let mut _processes: HashMap<String, data::Process> = HashMap::new();
 
     //Creating process
@@ -76,26 +174,32 @@ fn main() {
 
     //functions::processes(&_processes);
     */
-    let da1 = 1;
-    let da2 = 2;
-    let da3 = 3;
-    let da4 = 4;
 
-    
+    //scenarios
 
-    let tuple_vector: Vec<(String, i32)> = vec![
-        (String::from("Alice"), 25),
-        (String::from("Bob"), 30),
-        (String::from("Charlie"), 28),
+    let _scenarios: Vec<(String, f64)> = vec![
+        (String::from("s1"), 0.5),
+        (String::from("s2"), 0.5),
     ];
 
-    data::_test(da1, da2, da3, da4, tuple_vector);
+    //reserve_type on tyhjä
+
+    let _reserve_type: Vec<(String, f64)> = Vec::new();
+
+    let _risk: Vec<(String, f64)> = vec![
+        (String::from("alfa"), 0.1),
+        (String::from("beta"), 0.0),
+    ];
+
+    data::_ordered_dict(_reserve_type);
+
+
+    //risk
 
 
 
 
     /*
-    let _nodes: HashMap<String, data::Node>;
     let _markets: HashMap<String, data::Market>;
     let _scenarios: HashMap<String, f64>;
     let _reserve_type: HashMap<String, f64>; //tähän vaan key: reserve type ja value: ramp_factor
@@ -107,34 +211,7 @@ fn main() {
 
     /*
 
-    //Create timeseries
-
-    let series1: Vec<(String, String)> = vec![
-        ("Data1".to_string(), "Value1".to_string()),
-        ("Data2".to_string(), "Value2".to_string()),
-    ];
-
-    let time_series1 = data::TimeSeries {
-        scenario: "Scenario1".to_string(),
-        series: series1,
-    };
-
-    let series2: Vec<(String, String)> = vec![
-        ("Data3".to_string(), "Value3".to_string()),
-        ("Data4".to_string(), "Value4".to_string()),
-    ];
-    let time_series2 = data::TimeSeries {
-        scenario: "Scenario2".to_string(),
-        series: series2,
-    };
-
-    // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
-    let time_series_data_vec: Vec<data::TimeSeries> = vec![time_series1, time_series2];
-
-    // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
-    let time_series_data: data::TimeSeriesData = data::TimeSeriesData {
-        ts_data: time_series_data_vec,
-    };
+    
 
     //Creating Topology: sinks and sources
 
@@ -160,52 +237,6 @@ fn main() {
 
     _sources.insert(&_electricheater_source.name, &_electricheater_source);
     _sinks.insert(&_electricheater_sink.name, &_electricheater_sink);
-
-    //Creating nodes
-
-    let _interiorair = data::Node {
-        name: String::from("interiorair"),
-        is_commodity: false,
-        is_state: true,
-        is_res: false,
-        is_market: false,
-        is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
-    };
-
-    let _building_envelope = data::Node {
-        name: String::from("buildingenvelope"),
-        is_commodity: false,
-        is_state: true,
-        is_res: false,
-        is_market: false,
-        is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
-    };
-
-    let _outside = data::Node {
-        name: String::from("outside"),
-        is_commodity: false,
-        is_state: true,
-        is_res: false,
-        is_market: false,
-        is_inflow: true,
-        cost: &time_series_data,
-        inflow: &time_series_data,
-    };
-
-    let _electricitygrid = data::Node {
-        name: String::from("electricitygrid"),
-        is_commodity: false,
-        is_state: false,
-        is_res: false,
-        is_market: false,
-        is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
-    };
 
     */
 

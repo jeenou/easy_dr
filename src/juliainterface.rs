@@ -71,7 +71,6 @@ pub mod julia {
     
     pub fn _call3<'target, 'data, T: Target<'target>>(
         target: T, 
-        module: &str, 
         function: &str, 
         data_1: Value<'_, 'data>,
         data_2: Value<'_, 'data>,
@@ -79,8 +78,6 @@ pub mod julia {
     ) -> JlrsResult<ValueResult<'target, 'data, T>> {
         unsafe {
             let res = Module::main(&target)
-                .submodule(&target, module)?
-                .as_managed()
                 .function(&target, function)?
                 .as_managed()
                 .call3(target, data_1, data_2, data_3);
@@ -93,7 +90,7 @@ pub mod julia {
     // Convert a slice of pairs of strings and i32's to an `OrderedDict`
     pub fn _to_ordered_dict<'target, T>(
         target: ExtendedTarget<'target, '_, '_, T>,
-        data: &[(String, i32)],
+        data: &[(String, f64)],
     ) -> JlrsResult<ValueData<'target, 'static, T>>
     where
         T: Target<'target>,
@@ -121,7 +118,7 @@ pub mod julia {
             // The key and value type.
             let types = [
                 DataType::string_type(&frame).as_value(),
-                DataType::int32_type(&frame).as_value(),
+                DataType::float64_type(&frame).as_value(),
             ];
             // Apply the types to the OrderedDict UnionAll to create the OrderedDict{String, Int32}
             // DataType, and call its constructor.
