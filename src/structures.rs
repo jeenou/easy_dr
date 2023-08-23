@@ -60,15 +60,21 @@ pub mod data {
         pub name: String,
         pub m_type: String,
         pub node: String, //mikä tyyppi
+        pub pgroup: String,
         pub direction: String,
         pub realisation: f64,
         pub reserve_type: String,
         pub is_bid: bool,
-        pub price: TimeSeriesData,
-        pub up_price: TimeSeriesData,
-        pub down_price: TimeSeriesData,
-        pub fixed: Vec<(String, String)>,
-        
+        pub is_limited: bool,
+        pub min_bid: f64,
+        pub max_bid: f64,
+        pub fee: f64,
+    }
+
+    pub struct Group {
+        pub name: String,
+        pub g_type: String,
+        pub entity: String,
     }
 
     impl<'a> std::fmt::Debug for Market {
@@ -137,7 +143,7 @@ pub mod data {
     gen_constraints::OrderedDict{String, GenConstraint}
     */
 
-    pub fn _predicer(nodes: HashMap<&String, &Node>) {
+    pub fn _predicer(nodes: HashMap<&String, &Node>, processes: HashMap<&String, &Process>, markets: HashMap<&String, &Market>, groups: HashMap<&String, &Group>) {
         let mut frame = StackFrame::new();
         let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
         let mut julia = pending.instance(&mut frame);
@@ -184,6 +190,44 @@ pub mod data {
             julia.include(path).expect("Could not include file1");
         }
 
+        //Create processes
+
+        for (key, value) in &processes {
+
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+            let _x = julia.scope(|mut frame| {
+
+                //name::String, conversion::Int=1, delay::Float64=0.0
+
+                let d1 = JuliaString::new(&mut frame, key).as_value();
+                let d2 = Value::new(&mut frame, value.conversion); 
+                let d3 = Value::new(&mut frame, value.delay);
+  
+                        
+                let function = "create_process"; 
+                let _process = julia::_call3(&mut frame, function,d1, d2, d3).unwrap().into_jlrs_result();
+
+                match _process {
+                    Ok(value) => {
+                        let _convert_function = "add_to_processes";
+                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
+                        match _convert_result {
+                            Ok(_) => println!("Added process to processes"),
+                            Err(error) => println!("Error adding process to processes: {:?}", error),
+                        }
+                    }
+                    Err(error) => println!("Error adding process to processes2: {:?}", error),
+                }  
+                
+                Ok(())            
+            
+            }).expect("result is an error");
+            
+        }
+
+        //Create nodes
+
         for (key, value) in &nodes {
 
             // An extended target provides a target for the result we want to return and a frame for
@@ -215,8 +259,88 @@ pub mod data {
             }).expect("result is an error");
             
         }
+
+        //Creating markets
+
+        //name::String, type::String, node::Any, pgroup::Any, direction::String, reserve_type::String, is_bid::Bool, is_limited::Bool, min_bid::Float64, max_bid::Float64, fee::Float64
+
+        for (key, value) in &markets {
+
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+            let _x = julia.scope(|mut frame| {
+
+                let d1 = JuliaString::new(&mut frame, key).as_value();
+                let d2 = JuliaString::new(&mut frame, &value.m_type).as_value(); 
+                let d3 = JuliaString::new(&mut frame, &value.node).as_value();
+                let d4 = JuliaString::new(&mut frame, &value.pgroup).as_value();
+                let d5 = JuliaString::new(&mut frame, &value.direction).as_value();
+                let d6 = JuliaString::new(&mut frame, &value.reserve_type).as_value();
+                let d7 = Value::new(&mut frame, value.is_bid);
+                let d8 = Value::new(&mut frame, value.is_limited);
+                let d9 = Value::new(&mut frame, value.min_bid);
+                let d10 = Value::new(&mut frame, value.max_bid);
+                let d11 = Value::new(&mut frame, value.fee);
+
+                let args = [d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11];
+  
+                        
+                let function = "create_market"; 
+                let _market = julia::_call(&mut frame, function, &args).unwrap().into_jlrs_result();
+
+                match _market {
+                    Ok(value) => {
+                        let _convert_function = "add_to_markets";
+                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
+                        match _convert_result {
+                            Ok(_) => println!("Added market to markets"),
+                            Err(error) => println!("Error adding market to markets: {:?}", error),
+                        }
+                    }
+                    Err(error) => println!("Error adding market to markets2: {:?}", error),
+                }  
+                
+                Ok(())            
+            
+            }).expect("result is an error");
+
+        }
+
+            //Creating groups
+
+        for (key, value) in &groups {
+
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+            let _x = julia.scope(|mut frame| {
+
+                let d1 = JuliaString::new(&mut frame, key).as_value();
+                let d2 = JuliaString::new(&mut frame, &value.g_type).as_value(); 
+                let d3 = JuliaString::new(&mut frame, &value.entity).as_value(); 
+
+                let args = [d1,d2,d3];
+
+                        
+                let function = "create_group"; 
+                let _group = julia::_call(&mut frame, function, &args).unwrap().into_jlrs_result();
+
+                match _group {
+                    Ok(value) => {
+                        let _convert_function = "add_to_groups";
+                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
+                        match _convert_result {
+                            Ok(_) => println!("Added group to groups"),
+                            Err(error) => println!("Error adding group to groups: {:?}", error),
+                        }
+                    }
+                    Err(error) => println!("Error adding group to groups2: {:?}", error),
+                }  
+                
+                Ok(())            
+            
+            }).expect("result is an error");
         
-        
+        }
         
     }
     
@@ -348,8 +472,6 @@ pub mod data {
 
             let function2 = "print_ordered_dict";
             let _result3 = julia::_call1(&mut frame, function2, _result2).unwrap().into_jlrs_result();
-
-
             
             Ok(())    
         

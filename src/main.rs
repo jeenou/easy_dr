@@ -105,21 +105,8 @@ fn main() {
     _nodes.insert(&_outside.name, &_outside);
     _nodes.insert(&_electricitygrid.name, &_electricitygrid);
 
-    let da1 = 10;
-    let da2 = 20;
-    let da3 = 30;
-    let da4 = 40;
-    let data = vec![
-        ("2022-08-21".to_string(), 10.0),
-        ("2022-08-22".to_string(), 15.0),
-    ];
 
-    data::_test(da1, da2, da3, da4, data);
-
-
-    //data::_predicer(_nodes);
-
-    /*let mut _processes: HashMap<String, data::Process> = HashMap::new();
+    let mut _processes: HashMap<&String, &data::Process> = HashMap::new();
 
     //Creating process
 
@@ -169,11 +156,40 @@ fn main() {
         eff_ops: &process_vec,
     };
 
-    _processes.insert(_electricheater1.name.clone(), _electricheater1);
-    _processes.insert(_electricheater2.name.clone(), _electricheater2);
+    _processes.insert(&_electricheater1.name, &_electricheater1);
+    _processes.insert(&_electricheater2.name, &_electricheater2);
 
-    //functions::processes(&_processes);
-    */
+
+    let mut _markets: HashMap<&String, &data::Market> = HashMap::new();
+    let mut _groups: HashMap<&String, &data::Group> = HashMap::new();
+
+    let _npe = data::Market {
+        name: String::from("npe"),
+        m_type: String::from("energy"),
+        node: String::from("electricitygrid"),
+        pgroup: String::from("p1"),
+        direction: String::from("none"),
+        realisation: 0.0,
+        reserve_type: String::from("none"),
+        is_bid: true,
+        is_limited: false,
+        min_bid: 0.0,
+        max_bid: 0.0,
+        fee: 0.0,
+    };
+
+    _markets.insert(&_npe.name, &_npe);
+
+    let _p1 = data::Group {
+        name: String::from("p1"),
+        g_type: String::from("process"),
+        entity: String::from("electricheater")
+    };
+
+    _groups.insert(&_p1.name, &_p1);
+
+    data::_predicer(_nodes, _processes, _markets, _groups);
+    
 
     //scenarios
 
@@ -191,7 +207,7 @@ fn main() {
         (String::from("beta"), 0.0),
     ];
 
-    data::_ordered_dict(_reserve_type);
+    //data::_ordered_dict(_reserve_type);
 
 
     //risk
@@ -199,8 +215,9 @@ fn main() {
 
 
 
+    
+    
     /*
-    let _markets: HashMap<String, data::Market>;
     let _scenarios: HashMap<String, f64>;
     let _reserve_type: HashMap<String, f64>; //tähän vaan key: reserve type ja value: ramp_factor
     let _risk: HashMap<String, f64>;
@@ -263,6 +280,22 @@ fn main() {
         down_price: &time_series_data, // mitä tähän
         fixed: market_vec, //mitä tähän
     };
+
+    */
+
+
+        /* 
+
+    let da1 = 10;
+    let da2 = 20;
+    let da3 = 30;
+    let da4 = 40;
+    let data = vec![
+        ("2022-08-21".to_string(), 10.0),
+        ("2022-08-22".to_string(), 15.0),
+    ];
+
+    data::_test(da1, da2, da3, da4, data);
 
     */
 

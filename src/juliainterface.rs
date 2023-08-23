@@ -32,6 +32,21 @@ pub mod julia {
         }
     }
 
+    pub fn _call<'target, 'data, T: Target<'target>>(
+        target: T,
+        function: &str,
+        args: &[Value<'_, 'data>],
+    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
+        unsafe {
+            let res = Module::main(&target)
+                .function(&target, function)?
+                .as_managed()
+                .call(target, args);
+    
+            Ok(res)
+        }
+    }
+
     
 
     pub fn _call1<'target, 'data, T: Target<'target>>(
