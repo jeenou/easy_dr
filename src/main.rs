@@ -162,6 +162,7 @@ fn main() {
 
     let mut _markets: HashMap<&String, &data::Market> = HashMap::new();
     let mut _groups: HashMap<&String, &data::Group> = HashMap::new();
+    let mut _genconstraints: HashMap<&String, &data::GenConstraint> = HashMap::new();
 
     let _npe = data::Market {
         name: String::from("npe"),
@@ -186,28 +187,39 @@ fn main() {
         entity: String::from("electricheater")
     };
 
+    /*Key: c_interiorair_up, 
+    Value: GenConstraint("c_interiorair_up", "st", true, 1000.0, 
+    ConFactor[ConFactor("state", ("interiorair", ""), 
+    Predicer.TimeSeriesData(TimeSeries[TimeSeries("s1", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)]), 
+TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)])]))], Predicer.TimeSeriesData(TimeSeries[])) */
+
     _groups.insert(&_p1.name, &_p1);
 
-    data::_predicer(_nodes, _processes, _markets, _groups);
-    
+    let _confactor = data::ConFactor{
 
-    //scenarios
+        var_type: String::from(""),
+        flow: (String::from(""),String::from("")),
+        data: &time_series_data    
+    };
 
-    let _scenarios: Vec<(String, f64)> = vec![
-        (String::from("s1"), 0.5),
-        (String::from("s2"), 0.5),
+    let genconstraint_vec: Vec<data::ConFactor> = vec![
+        _confactor,
     ];
 
-    //reserve_type on tyhjä
+    let _c_interiorair_up = data::GenConstraint {
 
-    let _reserve_type: Vec<(String, f64)> = Vec::new();
+        name: String::from("c_interiorair_up"),
+        gc_type: String::from("st"),
+        is_setpoint: true,
+        penalty: 1000.0,
+        factors: genconstraint_vec,
+        constant: &time_series_data,        
+    };
 
-    let _risk: Vec<(String, f64)> = vec![
-        (String::from("alfa"), 0.1),
-        (String::from("beta"), 0.0),
-    ];
+    _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
 
-    //data::_ordered_dict(_reserve_type);
+    data::_predicer2(false, false, false, false, false, false,_nodes, _processes, _markets, _groups, _genconstraints);
+
 
 
     //risk
