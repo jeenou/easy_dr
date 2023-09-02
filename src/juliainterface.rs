@@ -66,16 +66,13 @@ pub mod julia {
     }
     
     pub fn _call2<'target, 'data, T: Target<'target>>(
-        target: T, 
-        module: &str, 
+        target: T,  
         function: &str, 
         data_1: Value<'_, 'data>,
         data_2: Value<'_, 'data>
     ) -> JlrsResult<ValueResult<'target, 'data, T>> {
         unsafe {
             let res = Module::main(&target)
-                .submodule(&target, module)?
-                .as_managed()
                 .function(&target, function)?
                 .as_managed()
                 .call2(target, data_1, data_2);

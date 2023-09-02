@@ -6,6 +6,10 @@ use std::io::BufReader;
 use umya_spreadsheet::*;
 use std::collections::HashMap;
 use std::fs::File;
+use jlrs::{prelude::*};
+use jlrs::memory::target::frame::GcFrame;
+use crate::juliainterface::julia;
+use jlrs::error::JlrsError;
 
 // This function takes three arguments:
 //   - bool_val: a boolean value to insert into the vector
@@ -144,6 +148,80 @@ pub fn _generate_data() -> Vec<(String, i32)> {
         ("cherry".to_string(), 2),
         ("date".to_string(), 5),
     ]
+}
+
+pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64, data: Vec<(String, f64)>) {
+    let mut frame = StackFrame::new();
+    let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+    let mut julia = pending.instance(&mut frame);
+    // Include some custom code defined in MyModule.jl.
+    // This is safe because the included code doesn't do any strange things.
+    unsafe {
+        julia.scope(|mut frame| {
+            let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
+            let _ = Module::main(&frame)
+                .function(&frame, "cd")?
+                .as_managed()
+                .call1(&mut frame, predicer_dir).expect("cd to Predicer dir failed");
+            Ok(())
+        }).expect("error when cding to Predicer dir");
+        julia.scope(|mut frame| {
+            let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
+            let _ = Value::eval_string(&mut frame, "using Pkg");
+            let _ = Module::main(&frame)
+                .submodule(&frame, "Pkg")?
+                .as_managed()
+                .function(&frame, "activate")?
+                .as_managed()
+                .call1(&mut frame, predicer_dir).expect("activation failed");
+            Ok(())
+        }).expect("error when activating Julia environment");
+        julia.scope(|mut frame| {
+            Module::main(&frame)
+                .submodule(&frame, "Pkg")?
+                .as_managed()
+                .function(&frame, "instantiate")?
+                .as_managed()
+                .call0(&mut frame).expect("instatiation failed");
+                Ok(())
+        }).expect("error when instantiating Julia environment");
+        julia.scope(|mut frame| {
+            let wd = Module::main(&frame)
+                .function(&frame, "pwd")?
+                .as_managed()
+                .call0(&mut frame).into_jlrs_result()?.unbox::<String>().expect("pwd error");
+            println!("working directory {}", wd.expect("not ok"));
+            Ok(())
+        }).expect("error error on the wall");
+        let path = PathBuf::from("src/structures.jl");
+        julia.include(path).expect("Could not include file1");
+    }
+    
+    // An extended target provides a target for the result we want to return and a frame for
+    // temporary data.
+    let _x = julia.scope(|mut frame| {
+
+    
+        let d1 = Value::new(&mut frame, da1);
+        let d2 = Value::new(&mut frame, da2); 
+        let d3 = Value::new(&mut frame, da3); 
+        let d4 = Value::new(&mut frame, da4);  
+                  
+        //let module = "Predicer";
+        let function = "print_message"; 
+        let _result = julia::_call4(&mut frame, function,d1, d2, d3, d4).unwrap().into_jlrs_result();
+
+        let _result2 = julia::_to_ordered_dict(frame.as_extended_target(), &data).unwrap();
+
+        let function2 = "print_ordered_dict";
+        let _result3 = julia::_call1(&mut frame, function2, _result2).unwrap().into_jlrs_result();
+        
+        Ok(())    
+    
+
+        
+    }).expect("result is an error");
+    
 }
 
 /*

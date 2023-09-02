@@ -5,7 +5,6 @@ mod main_loop;
 mod utilities;
 mod juliainterface;
 mod structures;
-mod input_data;
 
 use crate::structures::data;
 //use crate::input_data::functions;
@@ -218,7 +217,7 @@ TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
 
-    data::_predicer2(false, false, false, false, false, false,_nodes, _processes, _markets, _groups, _genconstraints);
+    data::_predicer(false, false, false, false, false, false,_nodes, _processes, _markets, _groups, _genconstraints);
 
 
 
