@@ -581,7 +581,7 @@ pub mod data {
                         Err(error) => println!("Error generating model: {:?}", error),
                     }
                 }
-                Err(error) => println!("Error generating model: {:?}", error),
+                Err(error) => println!("Error generating inputdata: {:?}", error),
             }    
 
                 
