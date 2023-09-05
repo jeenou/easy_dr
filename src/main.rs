@@ -1,6 +1,7 @@
 
 use std::sync::mpsc::{Sender};
 use std::collections::HashMap;
+use std::env;
 mod main_loop;
 mod utilities;
 mod juliainterface;
@@ -21,6 +22,8 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
 
 fn main() {
 
+    let args: Vec<String> = env::args().collect();
+    let predicer_dir = args.get(1).expect("first argument should be path to Predicer");
 
 
     //Create timeseries
@@ -218,7 +221,7 @@ TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
 
-    data::_predicer2(false, false, false, false, false, false,_nodes, _processes, _markets, _groups, _genconstraints);
+    data::_predicer2(false, false, false, false, false, false,_nodes, _processes, _markets, _groups, _genconstraints, predicer_dir);
 
 
 

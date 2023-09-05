@@ -231,7 +231,8 @@ pub mod data {
         contains_piecewise_eff: bool, 
         contains_risk: bool,
         contains_delay: bool,
-        nodes: HashMap<&String, &Node>, processes: HashMap<&String, &Process>, markets: HashMap<&String, &Market>, groups: HashMap<&String, &Group>, gen_constraints: HashMap<&String, &GenConstraint>) {
+        nodes: HashMap<&String, &Node>, processes: HashMap<&String, &Process>, markets: HashMap<&String, &Market>, groups: HashMap<&String, &Group>, gen_constraints: HashMap<&String, &GenConstraint>,
+        predicer_dir: &str) {
         let mut frame = StackFrame::new();
         let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
         let mut julia = pending.instance(&mut frame);
@@ -243,34 +244,24 @@ pub mod data {
 
         unsafe {
             julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
+                let jl_predicer_dir = JuliaString::new(&mut frame, predicer_dir).as_value();
                 let _ = Module::main(&frame)
                     .function(&frame, "cd")?
                     .as_managed()
-                    .call1(&mut frame, predicer_dir).expect("cd to Predicer dir failed");
-                Ok(())
-            }).expect("error when cding to Predicer dir");
-            julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
+                    .call1(&mut frame, jl_predicer_dir).expect("cd to Predicer dir failed");
                 let _ = Value::eval_string(&mut frame, "using Pkg");
                 let _ = Module::main(&frame)
                     .submodule(&frame, "Pkg")?
                     .as_managed()
                     .function(&frame, "activate")?
                     .as_managed()
-                    .call1(&mut frame, predicer_dir).expect("activation failed");
-                Ok(())
-            }).expect("error when activating Julia environment");
-            julia.scope(|mut frame| {
+                    .call1(&mut frame, jl_predicer_dir).expect("activation failed");
                 Module::main(&frame)
                     .submodule(&frame, "Pkg")?
                     .as_managed()
                     .function(&frame, "instantiate")?
                     .as_managed()
                     .call0(&mut frame).expect("instatiation failed");
-                    Ok(())
-            }).expect("error when instantiating Julia environment");
-            julia.scope(|mut frame| {
                 let wd = Module::main(&frame)
                     .function(&frame, "pwd")?
                     .as_managed()
