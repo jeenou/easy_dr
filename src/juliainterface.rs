@@ -85,15 +85,20 @@ pub mod julia {
     }
     
     pub fn _call3<'target, 'data, T: Target<'target>>(
-        target: T, 
-        function: &str, 
+        target: T,
+        function: &[&str],
         data_1: Value<'_, 'data>,
         data_2: Value<'_, 'data>,
         data_3: Value<'_, 'data>
     ) -> JlrsResult<ValueResult<'target, 'data, T>> {
         unsafe {
-            let res = Module::main(&target)
-                .function(&target, function)?
+            let mut module = Module::main(&target);
+            for submodule in &function[0..function.len()-1] {
+                module = module.submodule(&target, submodule).expect(&format!("error with module {}", &submodule)).as_managed();
+            }
+            let function_name = function.last().expect("function name missing");
+            let callable = module.function(&target, function_name).expect(&format!("error with function {}", &function_name));
+            let res = callable
                 .as_managed()
                 .call3(target, data_1, data_2, data_3);
     
