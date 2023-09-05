@@ -213,9 +213,9 @@ pub mod data {
         let _x = julia.scope(|mut frame| {
 
 
-            let _result2 = julia::_to_ordered_dict(frame.as_extended_target(), &data).unwrap();
+            let _result2 = julia::to_ordered_dict(frame.as_extended_target(), &data).unwrap();
 
-            let _result3 = julia::call1(&mut frame, &["Predicer", "print_ordered_dict"], _result2).into_jlrs_result();
+            let _result3 = julia::call(&mut frame, &["Predicer", "print_ordered_dict"], &[_result2]).into_jlrs_result();
 
             Ok(())
 
@@ -468,14 +468,14 @@ pub mod data {
                     (String::from("s2"), 0.5),
                 ];
 
-                let j_scenarios = julia::_to_ordered_dict(frame.as_extended_target(), &r_scenarios).unwrap();
+                let j_scenarios = julia::to_ordered_dict(frame.as_extended_target(), &r_scenarios).unwrap();
 
 
                 //reserve_type on tyhjä
 
                 let r_reserve_type: Vec<(String, f64)> = Vec::new();
 
-                let j_reserve_type = julia::_to_ordered_dict(frame.as_extended_target(), &r_reserve_type).unwrap();
+                let j_reserve_type = julia::to_ordered_dict(frame.as_extended_target(), &r_reserve_type).unwrap();
 
                 //Risk
 
@@ -484,7 +484,7 @@ pub mod data {
                     (String::from("beta"), 0.0),
                 ];
 
-                let j_risk = julia::_to_ordered_dict(frame.as_extended_target(), &r_risk).unwrap();
+                let j_risk = julia::to_ordered_dict(frame.as_extended_target(), &r_risk).unwrap();
 
                 //inflow_blocks
 
@@ -835,14 +835,14 @@ pub mod data {
                 (String::from("s2"), 0.5),
             ];
 
-            let j_scenarios = julia::_to_ordered_dict(frame.as_extended_target(), &r_scenarios).unwrap();
+            let j_scenarios = julia::to_ordered_dict(frame.as_extended_target(), &r_scenarios).unwrap();
 
 
             //reserve_type on tyhjä
 
             let r_reserve_type: Vec<(String, f64)> = Vec::new();
 
-            let j_reserve_type = julia::_to_ordered_dict(frame.as_extended_target(), &r_reserve_type).unwrap();
+            let j_reserve_type = julia::to_ordered_dict(frame.as_extended_target(), &r_reserve_type).unwrap();
 
             //Risk
 
@@ -851,7 +851,7 @@ pub mod data {
                 (String::from("beta"), 0.0),
             ];
 
-            let j_risk = julia::_to_ordered_dict(frame.as_extended_target(), &r_risk).unwrap();
+            let j_risk = julia::to_ordered_dict(frame.as_extended_target(), &r_risk).unwrap();
 
             //inflow_blocks
 
@@ -964,7 +964,7 @@ pub mod data {
             //let module = "Predicer";
             let _result = julia::call(&mut frame, &["Predicer", "print_message"], &[d1, d2, d3, d4]).into_jlrs_result();
 
-            let _result2 = julia::_to_ordered_dict(frame.as_extended_target(), &data).unwrap();
+            let _result2 = julia::to_ordered_dict(frame.as_extended_target(), &data).unwrap();
 
             let _result3 = julia::call(&mut frame, &["Predicer", "print_ordered_dict"], &[_result2]).into_jlrs_result();
 

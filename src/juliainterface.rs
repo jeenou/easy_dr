@@ -33,51 +33,8 @@ pub mod julia {
         }
     }
 
-
-
-    pub fn call1<'target, 'data, T: Target<'target>>(
-        target: T,
-        function: &[&str],
-        data1: Value<'_, 'data>
-
-    ) -> ValueResult<'target, 'data, T> {
-        unsafe {
-            let callable = prepare_callable(&target, &function);
-            callable.call1(target, data1)
-        }
-    }
-
-    pub fn _call2<'target, 'data, T: Target<'target>>(
-        target: T,
-        module: &str,
-        function: &[&str],
-        data_1: Value<'_, 'data>,
-        data_2: Value<'_, 'data>
-    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
-        unsafe {
-            let callable = prepare_callable(&target, &function);
-            let res = callable.call2(target, data_1, data_2);
-            Ok(res)
-        }
-    }
-
-    pub fn _call3<'target, 'data, T: Target<'target>>(
-        target: T,
-        function: &[&str],
-        data_1: Value<'_, 'data>,
-        data_2: Value<'_, 'data>,
-        data_3: Value<'_, 'data>
-    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
-        unsafe {
-            let callable = prepare_callable(&target, &function);
-            let res = callable.call3(target, data_1, data_2, data_3);
-            Ok(res)
-        }
-    }
-
-
     // Convert a slice of pairs of strings and i32's to an `OrderedDict`
-    pub fn _to_ordered_dict<'target, T>(
+    pub fn to_ordered_dict<'target, T>(
         target: ExtendedTarget<'target, '_, '_, T>,
         data: &[(String, f64)],
     ) -> JlrsResult<ValueData<'target, 'static, T>>
