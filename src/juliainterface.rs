@@ -1,89 +1,66 @@
-
-
-
 pub mod julia {
-    // Module code goes here
-
     use jlrs::prelude::*;
     use jlrs::data::managed::value::ValueResult;
     use jlrs::prelude::*;
     use jlrs::data::managed::value::ValueData;
     use jlrs::memory::target::ExtendedTarget;
     use jlrs::data::managed::union_all::UnionAll;
+    use jlrs::data::managed::function::Function;
 
-    pub fn _call4<'target, 'data, T: Target<'target>>(
-        target: T, 
-        function: &str, 
-        data_1: Value<'_, 'data>,
-        data_2: Value<'_, 'data>,
-        data_3: Value<'_, 'data>,
-        data_4: Value<'_, 'data>
-    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
-
-        let args = [data_1, data_2, data_3, data_4];
-
+    fn prepare_callable<'target, 'data, T: Target<'target>>(target: T, function: &[&str]) -> Function<'target, 'data> {
         unsafe {
-            let res = Module::main(&target)
-                .function(&target, function)?
-                .as_managed()
-                .call(target, args);
-    
-            Ok(res)
+            let mut module = Module::main(&target);
+            for submodule in &function[0..function.len()-1] {
+                module = module.submodule(&target, submodule).expect(&format!("error with module {}", &submodule)).as_managed();
+            }
+            let function_name = function.last().expect("function name missing");
+            module.function(&target, function_name).expect(&format!("error with function {}", &function_name)).as_managed()
         }
     }
 
-    pub fn _call<'target, 'data, T: Target<'target>>(
+     pub fn call<'target, 'data, T: Target<'target>>(
         target: T,
-        function: &str,
+        function: &[&str],
         args: &[Value<'_, 'data>],
-    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
+    ) -> ValueResult<'target, 'data, T> {
+        let callable = prepare_callable(&target, &function);
         unsafe {
-            let res = Module::main(&target)
-                .function(&target, function)?
-                .as_managed()
-                .call(target, args);
-    
-            Ok(res)
+            if args.len() == 0 {
+                callable.call0(target)
+            } else {
+                callable.call(target, args)
+            }
         }
     }
 
-    
 
-    pub fn _call1<'target, 'data, T: Target<'target>>(
-        target: T, 
-        function: &str, 
+
+    pub fn call1<'target, 'data, T: Target<'target>>(
+        target: T,
+        function: &[&str],
         data1: Value<'_, 'data>
-        
-    ) -> JlrsResult<ValueResult<'target, 'data, T>> {
+
+    ) -> ValueResult<'target, 'data, T> {
         unsafe {
-            let res = Module::main(&target)
-                .function(&target, function)?
-                .as_managed()
-                .call1(target, data1);
-    
-            Ok(res)
+            let callable = prepare_callable(&target, &function);
+            callable.call1(target, data1)
         }
     }
-    
+
     pub fn _call2<'target, 'data, T: Target<'target>>(
-        target: T, 
-        module: &str, 
-        function: &str, 
+        target: T,
+        module: &str,
+        function: &[&str],
         data_1: Value<'_, 'data>,
         data_2: Value<'_, 'data>
     ) -> JlrsResult<ValueResult<'target, 'data, T>> {
         unsafe {
-            let res = Module::main(&target)
-                .submodule(&target, module)?
-                .as_managed()
-                .function(&target, function)?
-                .as_managed()
-                .call2(target, data_1, data_2);
-    
+            let callable = prepare_callable(&target, &function);
+            let res = callable.call2(target, data_1, data_2);
             Ok(res)
         }
     }
-    
+
     pub fn _call3<'target, 'data, T: Target<'target>>(
         target: T,
         function: &[&str],
@@ -92,16 +69,8 @@ pub mod julia {
         data_3: Value<'_, 'data>
     ) -> JlrsResult<ValueResult<'target, 'data, T>> {
         unsafe {
-            let mut module = Module::main(&target);
-            for submodule in &function[0..function.len()-1] {
-                module = module.submodule(&target, submodule).expect(&format!("error with module {}", &submodule)).as_managed();
-            }
-            let function_name = function.last().expect("function name missing");
-            let callable = module.function(&target, function_name).expect(&format!("error with function {}", &function_name));
-            let res = callable
-                .as_managed()
-                .call3(target, data_1, data_2, data_3);
-    
+            let callable = prepare_callable(&target, &function);
+            let res = callable.call3(target, data_1, data_2, data_3);
             Ok(res)
         }
     }
@@ -173,6 +142,3 @@ pub mod julia {
     }
 
 }
-
-
-

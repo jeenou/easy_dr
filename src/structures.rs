@@ -161,7 +161,7 @@ pub mod data {
         // This is safe because the included code doesn't do any strange things.
         unsafe {
             julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
+                let predicer_dir = JuliaString::new(&mut frame, "use command line arg here").as_value();
                 let _ = Module::main(&frame)
                     .function(&frame, "cd")?
                     .as_managed()
@@ -169,7 +169,7 @@ pub mod data {
                 Ok(())
             }).expect("error when cding to Predicer dir");
             julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
+                let predicer_dir = JuliaString::new(&mut frame, "use command line arg here").as_value();
                 let _ = Value::eval_string(&mut frame, "using Pkg");
                 let _ = Module::main(&frame)
                     .submodule(&frame, "Pkg")?
@@ -215,8 +215,7 @@ pub mod data {
 
             let _result2 = julia::_to_ordered_dict(frame.as_extended_target(), &data).unwrap();
 
-            let function2 = "print_ordered_dict";
-            let _result3 = julia::_call1(&mut frame, function2, _result2).unwrap().into_jlrs_result();
+            let _result3 = julia::call1(&mut frame, &["Predicer", "print_ordered_dict"], _result2).into_jlrs_result();
 
             Ok(())
 
@@ -245,26 +244,10 @@ pub mod data {
         unsafe {
             julia.scope(|mut frame| {
                 let jl_predicer_dir = JuliaString::new(&mut frame, predicer_dir).as_value();
-                Module::main(&frame)
-                    .function(&frame, "cd")?
-                    .as_managed()
-                    .call1(&mut frame, jl_predicer_dir).expect("cd to Predicer dir failed");
                 Value::eval_string(&mut frame, "using Pkg");
-                let jl_current_dir = JuliaString::new(&mut frame, ".").as_value();
-                Module::main(&frame)
-                    .submodule(&frame, "Pkg")?
-                    .as_managed()
-                    .function(&frame, "activate")?
-                    .as_managed()
-                    .call1(&mut frame, jl_current_dir).expect("activation failed");
-                Module::main(&frame)
-                    .submodule(&frame, "Pkg")?
-                    .as_managed()
-                    .function(&frame, "instantiate")?
-                    .as_managed()
-                    .call0(&mut frame).expect("instatiation failed");
+                julia::call(&frame, &["Pkg", "activate"], &[jl_predicer_dir]);
+                julia::call(&frame, &["Pkg", "instantiate"], &[]);
                 Value::eval_string(&mut frame, "using Predicer");
-                let mut list: Vec<Value> = Vec::new();
 
                 //Create processes
 
@@ -276,13 +259,11 @@ pub mod data {
                     let p_d2 = Value::new(&mut frame, value.conversion);
                     let p_d3 = Value::new(&mut frame, value.delay);
 
+                    let process = julia::call(&mut frame, &["Predicer", "create_process"], &[p_d1, p_d2, p_d3]).into_jlrs_result();
 
-                    let _process = julia::_call3(&mut frame, &["Predicer", "create_process"],p_d1, p_d2, p_d3).unwrap().into_jlrs_result();
-
-                    match _process {
+                    match process {
                         Ok(process_value) => {
-                            let _add_to_processes = "add_to_processes";
-                            let _add_to_processes_result = julia::_call1(&mut frame, _add_to_processes, process_value).unwrap();
+                            let _add_to_processes_result = julia::call(&mut frame, &["Predicer", "add_to_processes"], &[process_value]);
                             match _add_to_processes_result {
                                 Ok(_) => println!("Added to processes!"),
                                 Err(error) => println!("Error adding process to processes: {:?}", error),
@@ -292,9 +273,8 @@ pub mod data {
                     }
                 }
 
-                let _return_processes = "return_processes";
-                let p_args = [];
-                let _processes = julia::_call(&mut frame, _return_processes, &p_args).unwrap().into_jlrs_result();
+                let _processes = julia::call(&mut frame, &["Predicer", "return_processes"], &[]).into_jlrs_result();
+                let mut list: Vec<Value> = Vec::new();
 
                 match _processes {
                     Ok(processes_value) => {
@@ -316,12 +296,11 @@ pub mod data {
                     let n_d3 = Value::new(&mut frame, value.is_market);
 
 
-                    let _node = julia::_call3(&mut frame, &["Predicer", "create_node"],n_d1, n_d2, n_d3).unwrap().into_jlrs_result();
+                    let _node = julia::call(&mut frame, &["Predicer", "create_node"], &[n_d1, n_d2, n_d3]).into_jlrs_result();
 
                     match _node {
                         Ok(node_value) => {
-                            let _add_to_nodes = "add_to_nodes";
-                            let _add_to_nodes_result = julia::_call1(&mut frame, _add_to_nodes, node_value).unwrap();
+                            let _add_to_nodes_result = julia::call(&mut frame, &["Predicer", "add_to_nodes"], &[node_value]);
                             match _add_to_nodes_result {
                                 Ok(_) => println!("Added to nodes!"),
                                 Err(error) => println!("Error adding node to nodes: {:?}", error),
@@ -331,9 +310,8 @@ pub mod data {
                     }
                 }
 
-                let _return_nodes = "return_nodes";
                 let n_args = [];
-                let _nodes = julia::_call(&mut frame, _return_nodes, &n_args).unwrap().into_jlrs_result();
+                let _nodes = julia::call(&mut frame, &["Predicer", "return_nodes"], &n_args).into_jlrs_result();
 
                 match _nodes {
                     Ok(nodes_value) => {
@@ -369,13 +347,11 @@ pub mod data {
                     let m_args = [d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11];
 
 
-                    let _create_market = "create_market";
-                    let _market = julia::_call(&mut frame, _create_market, &m_args).unwrap().into_jlrs_result();
+                    let _market = julia::call(&mut frame, &["Predicer", "create_market"], &m_args).into_jlrs_result();
 
                     match _market {
                         Ok(market_value) => {
-                            let _add_to_markets = "add_to_markets";
-                            let _add_to_markets_result = julia::_call1(&mut frame, _add_to_markets, market_value).unwrap();
+                            let _add_to_markets_result = julia::call(&mut frame, &["Predicer", "add_to_markets"], &[market_value]);
                             match _add_to_markets_result {
                                 Ok(_) => println!("Added to markets!"),
                                 Err(error) => println!("Error adding market to markets: {:?}", error),
@@ -386,9 +362,8 @@ pub mod data {
 
                 }
 
-                let _return_markets = "return_markets";
                 let m_args = [];
-                let _markets = julia::_call(&mut frame, _return_markets, &m_args).unwrap().into_jlrs_result();
+                let _markets = julia::call(&mut frame, &["Predicer", "return_markets"], &m_args).into_jlrs_result();
 
                 match _markets {
                     Ok(markets_value) => {
@@ -412,13 +387,11 @@ pub mod data {
                     let g_args = [d1,d2,d3];
 
 
-                    let _create_group = "create_group";
-                    let _group = julia::_call(&mut frame, _create_group, &g_args).unwrap().into_jlrs_result();
+                    let _group = julia::call(&mut frame, &["Predicer", "create_group"], &g_args).into_jlrs_result();
 
                     match _group {
                         Ok(group_value) => {
-                            let _add_to_groups = "add_to_groups";
-                            let _add_to_groups_result = julia::_call1(&mut frame, _add_to_groups, group_value).unwrap();
+                            let _add_to_groups_result = julia::call(&mut frame, &["Predicer", "add_to_groups"], &[group_value]);
                             match _add_to_groups_result {
                                 Ok(_) => println!("Added to groups!"),
                                 Err(error) => println!("Error adding group to groups: {:?}", error),
@@ -429,9 +402,8 @@ pub mod data {
 
                 }
 
-                let _return_groups = "return_groups";
                 let g_args = [];
-                let _groups = julia::_call(&mut frame, _return_groups, &g_args).unwrap().into_jlrs_result();
+                let _groups = julia::call(&mut frame, &["Predicer", "return_groups"], &g_args).into_jlrs_result();
 
                 match _groups {
                     Ok(groups_value) => {
@@ -454,13 +426,11 @@ pub mod data {
                     let gc_args = [d1,d2,d3, d4];
 
 
-                    let function = "create_genconstraint";
-                    let _genconstraint = julia::_call(&mut frame, function, &gc_args).unwrap().into_jlrs_result();
+                    let _genconstraint = julia::call(&mut frame, &["Predicer", "create_genconstraint"], &gc_args).into_jlrs_result();
 
                     match _genconstraint {
                         Ok(gc_value) => {
-                            let _add_to_genconstraints = "add_to_genconstraints";
-                            let _add_to_genconstraints_result = julia::_call1(&mut frame, _add_to_genconstraints, gc_value).unwrap();
+                            let _add_to_genconstraints_result = julia::call(&mut frame, &["Predicer", "add_to_genconstraints"], &[gc_value]);
                             match _add_to_genconstraints_result {
                                 Ok(_) => println!("Added to genconstraints!"),
                                 Err(error) => println!("Error adding genconstraint to genconstraints: {:?}", error),
@@ -471,9 +441,8 @@ pub mod data {
 
                 }
 
-                let _return_genconstraints = "return_genconstraints";
                 let gc_args = [];
-                let _genconstraints = julia::_call(&mut frame, _return_genconstraints, &gc_args).unwrap().into_jlrs_result();
+                let _genconstraints = julia::call(&mut frame, &["Predicer", "return_genconstraints"], &gc_args).into_jlrs_result();
 
                 match _genconstraints {
                     Ok(genconstraints_value) => {
@@ -521,9 +490,8 @@ pub mod data {
 
                 //gen_constraints
 
-                let _return_inflowblocks = "return_inflowblocks";
                 let args1 = [];
-                let inflowblocks = julia::_call(&mut frame, _return_inflowblocks, &args1).unwrap().into_jlrs_result();
+                let inflowblocks = julia::call(&mut frame, &["Predicer", "return_inflowblocks"], &args1).into_jlrs_result();
 
                 match inflowblocks {
                     Ok(inflowblocks_value) => {
@@ -551,17 +519,14 @@ pub mod data {
 
                 ];
 
-                let _create_inputdata = "create_inputdata";
-
-                let _input_data = julia::_call(&mut frame, _create_inputdata, &i_args).unwrap().into_jlrs_result();
+                let _input_data = julia::call(&mut frame, &["Predicer", "create_inputdata"], &i_args).into_jlrs_result();
 
 
 
 
                 match _input_data {
                     Ok(id_value) => {
-                        let _generate_model = "generate_model";
-                        let _generate_model_result = julia::_call1(&mut frame, _generate_model, id_value).unwrap();
+                        let _generate_model_result = julia::call(&mut frame, &["Predicer", "generate_model"], &[id_value]);
                         match _generate_model_result {
                             Ok(_gm_value) => {
                                 println!("Generated model")},
@@ -991,29 +956,20 @@ pub mod data {
         // An extended target provides a target for the result we want to return and a frame for
         // temporary data.
         let _x = julia.scope(|mut frame| {
-
-
             let d1 = Value::new(&mut frame, da1);
             let d2 = Value::new(&mut frame, da2);
             let d3 = Value::new(&mut frame, da3);
             let d4 = Value::new(&mut frame, da4);
 
             //let module = "Predicer";
-            let function = "print_message";
-            let _result = julia::_call4(&mut frame, function,d1, d2, d3, d4).unwrap().into_jlrs_result();
+            let _result = julia::call(&mut frame, &["Predicer", "print_message"], &[d1, d2, d3, d4]).into_jlrs_result();
 
             let _result2 = julia::_to_ordered_dict(frame.as_extended_target(), &data).unwrap();
 
-            let function2 = "print_ordered_dict";
-            let _result3 = julia::_call1(&mut frame, function2, _result2).unwrap().into_jlrs_result();
+            let _result3 = julia::call(&mut frame, &["Predicer", "print_ordered_dict"], &[_result2]).into_jlrs_result();
 
             Ok(())
-
-
-
         }).expect("result is an error");
 
     }
-
-
 }
