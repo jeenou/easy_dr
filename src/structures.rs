@@ -79,11 +79,28 @@ pub mod data {
         pub entity: String,
     }
 
+
     impl<'a> std::fmt::Debug for Market {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             // Write your custom formatting logic here
             write!(f, "Node {{ /* ... */ }}")
         }
+    }
+
+    pub struct NodeDiffusion {
+        pub name: String,
+        pub node1: String,
+        pub node2: String,
+        pub diff_coeff: f64,
+    }
+
+    pub struct NodeDelay {
+        pub name: String,
+        pub node1: String,
+        pub node2: String,
+        pub delay: f64,
+        pub min_flow: f64,
+        pub max_flow: f64,
     }
 
     pub struct Scenario {
@@ -132,6 +149,11 @@ pub mod data {
         pub name: String,
         pub node: String,
         pub data: TimeSeriesData,
+    }
+
+    pub struct NodeHistory<'a> {
+        pub node: String,
+        pub steps:  &'a TimeSeriesData,
     }
 
     pub struct GenConstraint<'a>{
@@ -223,14 +245,21 @@ pub mod data {
 
     }
 
-    pub fn _predicer2(
+    pub fn _predicer(
         contains_reserves: bool,
         contains_online: bool,
         contains_state: bool,
         contains_piecewise_eff: bool,
         contains_risk: bool,
         contains_delay: bool,
-        nodes: HashMap<&String, &Node>, processes: HashMap<&String, &Process>, markets: HashMap<&String, &Market>, groups: HashMap<&String, &Group>, gen_constraints: HashMap<&String, &GenConstraint>,
+        contains_diffusion: bool,
+        nodes: HashMap<&String, &Node>, 
+        processes: HashMap<&String, &Process>, 
+        markets: HashMap<&String, &Market>, 
+        groups: HashMap<&String, &Group>, 
+        gen_constraints: HashMap<&String, &GenConstraint>,
+        node_diffusion: HashMap<&String, &NodeDiffusion>,
+        node_delay: HashMap<&String, &NodeDelay>,
         predicer_dir: &str) {
         let mut frame = StackFrame::new();
         let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
@@ -253,13 +282,10 @@ pub mod data {
 
                 for (key, value) in &processes {
 
-                //name::String, conversion::Int=1, delay::Float64=0.0
-
                     let p_d1 = JuliaString::new(&mut frame, key).as_value();
                     let p_d2 = Value::new(&mut frame, value.conversion);
-                    let p_d3 = Value::new(&mut frame, value.delay);
 
-                    let process = julia::call(&mut frame, &["Predicer", "create_process"], &[p_d1, p_d2, p_d3]).into_jlrs_result();
+                    let process = julia::call(&mut frame, &["Predicer", "create_process"], &[p_d1, p_d2]).into_jlrs_result();
 
                     match process {
                         Ok(process_value) => {
@@ -278,6 +304,7 @@ pub mod data {
 
                 match _processes {
                     Ok(processes_value) => {
+                        //list[0]
                         list.push(processes_value);
                     }
                     Err(error) => println!("Error returning processes: {:?}", error),
@@ -315,14 +342,93 @@ pub mod data {
 
                 match _nodes {
                     Ok(nodes_value) => {
+                        //list[1]
                         list.push(nodes_value);
                     }
                     Err(error) => println!("Error returning nodes: {:?}", error),
                 }
 
-                //Täytyy lisätä funkti, joka palauttaa "nodes"
+                //Node diffusion
 
-                //Nodes diffusion
+                for (key, value) in &node_diffusion {
+
+                    // An extended target provides a target for the result we want to return and a frame for
+                    // temporary data.
+
+
+                    let nd_d1 = JuliaString::new(&mut frame, &value.node1).as_value();
+                    let nd_d2 = JuliaString::new(&mut frame, &value.node2).as_value();
+                    let nd_d3 = Value::new(&mut frame, value.diff_coeff);
+
+
+                    let _node_diffusion_tuple = julia::call(&mut frame, &["Predicer", "create_node_diffusion_tuple"], &[nd_d1, nd_d2, nd_d3]).into_jlrs_result();
+
+                    match _node_diffusion_tuple {
+                        Ok(_) => println!("Added node diffusion tuple!"),
+                        Err(error) => println!("Error adding node diffusion tuple: {:?}", error),
+                    }
+
+                }
+
+                let nd_args = [];
+                let _node_diffusion_tuples = julia::call(&mut frame, &["Predicer", "return_node_diffusion_tuples"], &nd_args).into_jlrs_result();
+
+                match _node_diffusion_tuples {
+                    Ok(node_diffusion_value) => {
+                        //list[2]
+                        list.push(node_diffusion_value);
+                    }
+                    Err(error) => println!("Error returning node diffusion tuples: {:?}", error),
+                }
+
+                //node_delay
+
+                for (key, value) in &node_delay {
+
+                    // An extended target provides a target for the result we want to return and a frame for
+                    // temporary data.
+
+
+                    let nde_d1 = JuliaString::new(&mut frame, &value.node1).as_value();
+                    let nde_d2 = JuliaString::new(&mut frame, &value.node2).as_value();
+                    let nde_d3 = Value::new(&mut frame, value.delay);
+                    let nde_d4 = Value::new(&mut frame, value.min_flow);
+                    let nde_d5 = Value::new(&mut frame, value.max_flow);
+
+
+                    let _node_delay_tuple = julia::call(&mut frame, &["Predicer", "create_node_delay_tuple"], &[nde_d1, nde_d2, nde_d3, nde_d4, nde_d5]).into_jlrs_result();
+
+                    match _node_delay_tuple {
+                        Ok(_) => println!("Added node delay tuple!"),
+                        Err(error) => println!("Error adding node delay tuple: {:?}", error),
+                    }
+
+                }
+
+                let nde_args = [];
+                let _node_delay_tuples = julia::call(&mut frame, &["Predicer", "return_node_delay_tuples"], &nde_args).into_jlrs_result();
+
+                match _node_delay_tuples {
+                    Ok(node_delay_value) => {
+                        //list[3]
+                        list.push(node_delay_value);
+                    }
+                    Err(error) => println!("Error returning node diffusion tuples: {:?}", error),
+                }
+
+                //node_histories
+
+                let args1 = [];
+                let node_histories = julia::call(&mut frame, &["Predicer", "return_node_histories"], &args1).into_jlrs_result();
+
+                match node_histories {
+                    Ok(nodehistory_value) => {
+                        //list[4]
+                        list.push(nodehistory_value);
+                        println!("Added node histories")},
+                    Err(error) => println!("Error adding node histories: {:?}", error),
+                }
+
 
                 //Creating markets
 
@@ -367,6 +473,7 @@ pub mod data {
 
                 match _markets {
                     Ok(markets_value) => {
+                        //list[5]
                         list.push(markets_value);
                     }
                     Err(error) => println!("Error returning markets: {:?}", error),
@@ -407,10 +514,13 @@ pub mod data {
 
                 match _groups {
                     Ok(groups_value) => {
+                        //list[6]
                         list.push(groups_value);
                     }
                     Err(error) => println!("Error returning groups: {:?}", error),
                 }
+
+                //gen_constraints
 
                 for (key, value) in &gen_constraints {
 
@@ -446,20 +556,11 @@ pub mod data {
 
                 match _genconstraints {
                     Ok(genconstraints_value) => {
+                        //list[7]
                         list.push(genconstraints_value);
                     }
                     Err(error) => println!("Error returning genconstraints: {:?}", error),
                 }
-
-                //Boolean parameters
-
-                let j_contains_reserves = Value::new(&mut frame, contains_reserves);
-                let j_contains_online = Value::new(&mut frame, contains_online);
-                let j_contains_state = Value::new(&mut frame, contains_state);
-                let j_contains_piecewise_eff = Value::new(&mut frame, contains_piecewise_eff);
-                let j_contains_risk = Value::new(&mut frame, contains_risk);
-                let j_contains_delay = Value::new(&mut frame, contains_delay);
-                //let j_contains_diffusion = Value::new(&mut frame, contains_diffusion);
 
                 //Scenarios
 
@@ -488,41 +589,51 @@ pub mod data {
 
                 //inflow_blocks
 
-                //gen_constraints
-
                 let args1 = [];
                 let inflowblocks = julia::call(&mut frame, &["Predicer", "return_inflowblocks"], &args1).into_jlrs_result();
 
                 match inflowblocks {
                     Ok(inflowblocks_value) => {
+                        //list[8]
                         list.push(inflowblocks_value);
                         println!("Added inflowblocks")},
                     Err(error) => println!("Error adding inflowblocks: {:?}", error),
                 }
 
+                //Boolean parameters
+
+                let j_contains_reserves = Value::new(&mut frame, contains_reserves);
+                let j_contains_online = Value::new(&mut frame, contains_online);
+                let j_contains_state = Value::new(&mut frame, contains_state);
+                let j_contains_piecewise_eff = Value::new(&mut frame, contains_piecewise_eff);
+                let j_contains_risk = Value::new(&mut frame, contains_risk);
+                let j_contains_delay = Value::new(&mut frame, contains_delay);
+                let j_contains_diffusion = Value::new(&mut frame, contains_diffusion);
+
+
                 let i_args = [
+                    list[0], //processes
+                    list[1], //nodes
+                    list[2], //node diffusions
+                    list[3], //node delay
+                    list[4], //node histories
+                    list[5], //markets
+                    list[6], //groups
+                    list[7], //gengonstraints
+                    j_scenarios,
+                    j_reserve_type,
+                    j_risk,
+                    list[8], //inflowblocks
                     j_contains_reserves,
                     j_contains_online,
                     j_contains_state,
                     j_contains_piecewise_eff,
                     j_contains_risk,
                     j_contains_delay,
-                    list[0],
-                    list[1],
-                    list[2],
-                    list[3],
-                    j_scenarios,
-                    j_reserve_type,
-                    j_risk,
-                    list[5],
-                    list[4]
-
+                    j_contains_diffusion,
                 ];
 
-                let _input_data = julia::call(&mut frame, &["Predicer", "create_inputdata"], &i_args).into_jlrs_result();
-
-
-
+                let _input_data = julia::call(&mut frame, &["Predicer", "create_inputdata2"], &i_args).into_jlrs_result();
 
                 match _input_data {
                     Ok(id_value) => {
@@ -536,374 +647,11 @@ pub mod data {
                     Err(error) => println!("Error generating model: {:?}", error),
                 }
 
-
-
                 Ok(())
 
             }).expect("result is an error");
         }
     }
-
-    /*
-    pub fn _predicer(
-        contains_reserves: bool,
-        contains_online: bool,
-        contains_state: bool,
-        contains_piecewise_eff: bool,
-        contains_risk: bool,
-        contains_delay: bool,
-        nodes: HashMap<&String, &Node>, processes: HashMap<&String, &Process>, markets: HashMap<&String, &Market>, groups: HashMap<&String, &Group>, gen_constraints: HashMap<&String, &GenConstraint>) {
-        let mut frame = StackFrame::new();
-        let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
-        let mut julia = pending.instance(&mut frame);
-        // Include some custom code defined in MyModule.jl.
-        // This is safe because the included code doesn't do any strange things.
-
-        let mut list: Vec<Value> = Vec::new();
-
-
-        unsafe {
-            julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
-                let _ = Module::main(&frame)
-                    .function(&frame, "cd")?
-                    .as_managed()
-                    .call1(&mut frame, predicer_dir).expect("cd to Predicer dir failed");
-                Ok(())
-            }).expect("error when cding to Predicer dir");
-            julia.scope(|mut frame| {
-                let predicer_dir = JuliaString::new(&mut frame, "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer").as_value();
-                let _ = Value::eval_string(&mut frame, "using Pkg");
-                let _ = Module::main(&frame)
-                    .submodule(&frame, "Pkg")?
-                    .as_managed()
-                    .function(&frame, "activate")?
-                    .as_managed()
-                    .call1(&mut frame, predicer_dir).expect("activation failed");
-                Ok(())
-            }).expect("error when activating Julia environment");
-            julia.scope(|mut frame| {
-                Module::main(&frame)
-                    .submodule(&frame, "Pkg")?
-                    .as_managed()
-                    .function(&frame, "instantiate")?
-                    .as_managed()
-                    .call0(&mut frame).expect("instatiation failed");
-                    Ok(())
-            }).expect("error when instantiating Julia environment");
-            julia.scope(|mut frame| {
-                let wd = Module::main(&frame)
-                    .function(&frame, "pwd")?
-                    .as_managed()
-                    .call0(&mut frame).into_jlrs_result()?.unbox::<String>().expect("pwd error");
-                println!("working directory {}", wd.expect("not ok"));
-                Ok(())
-            }).expect("error error on the wall");
-            let path = PathBuf::from("src/structures.jl");
-            julia.include(path).expect("Could not include file1");
-        }
-
-        //Temporals
-
-
-        //Create processes
-
-        for (key, value) in &processes {
-
-            // An extended target provides a target for the result we want to return and a frame for
-            // temporary data.
-            let _x = julia.scope(|mut frame| {
-
-                //name::String, conversion::Int=1, delay::Float64=0.0
-
-                let d1 = JuliaString::new(&mut frame, key).as_value();
-                let d2 = Value::new(&mut frame, value.conversion);
-                let d3 = Value::new(&mut frame, value.delay);
-
-
-                let function = "create_process";
-                let _process = julia::_call3(&mut frame, function,d1, d2, d3).unwrap().into_jlrs_result();
-
-                match _process {
-                    Ok(value) => {
-                        let _convert_function = "add_to_processes";
-                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
-                        match _convert_result {
-                            Ok(value) => {
-                                let j_processes = value;
-                                list.push(j_processes);
-                                println!("Added process to processes")
-                            },
-                            Err(error) => println!("Error adding process to processes: {:?}", error),
-                        }
-                    }
-                    Err(error) => println!("Error adding process to processes2: {:?}", error),
-                }
-
-                Ok(())
-
-            }).expect("result is an error");
-
-        }
-
-        //Create nodes
-
-        for (key, value) in &nodes {
-
-            // An extended target provides a target for the result we want to return and a frame for
-            // temporary data.
-            let _x = julia.scope(|mut frame| {
-
-                let d1 = JuliaString::new(&mut frame, key).as_value();
-                let d2 = Value::new(&mut frame, value.is_commodity);
-                let d3 = Value::new(&mut frame, value.is_market);
-
-
-                let function = "create_node";
-                let _node = julia::_call3(&mut frame, function,d1, d2, d3).unwrap().into_jlrs_result();
-
-                match _node {
-                    Ok(value) => {
-                        let _convert_function = "add_to_nodes";
-                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
-                        match _convert_result {
-                            Ok(_) => {
-                                let j_nodes = value;
-                                list.push(j_nodes);
-                                println!("Added node to nodes")},
-                            Err(error) => println!("Error adding node to nodes: {:?}", error),
-                        }
-                    }
-                    Err(error) => println!("Error adding node to nodes2: {:?}", error),
-                }
-
-                Ok(())
-
-            }).expect("result is an error");
-
-        }
-
-        //Nodes diffusion
-
-        //Creating markets
-
-        //name::String, type::String, node::Any, pgroup::Any, direction::String, reserve_type::String, is_bid::Bool, is_limited::Bool, min_bid::Float64, max_bid::Float64, fee::Float64
-
-        for (key, value) in &markets {
-
-            // An extended target provides a target for the result we want to return and a frame for
-            // temporary data.
-            let _x = julia.scope(|mut frame| {
-
-                let d1 = JuliaString::new(&mut frame, key).as_value();
-                let d2 = JuliaString::new(&mut frame, &value.m_type).as_value();
-                let d3 = JuliaString::new(&mut frame, &value.node).as_value();
-                let d4 = JuliaString::new(&mut frame, &value.pgroup).as_value();
-                let d5 = JuliaString::new(&mut frame, &value.direction).as_value();
-                let d6 = JuliaString::new(&mut frame, &value.reserve_type).as_value();
-                let d7 = Value::new(&mut frame, value.is_bid);
-                let d8 = Value::new(&mut frame, value.is_limited);
-                let d9 = Value::new(&mut frame, value.min_bid);
-                let d10 = Value::new(&mut frame, value.max_bid);
-                let d11 = Value::new(&mut frame, value.fee);
-
-                let args = [d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11];
-
-
-                let function = "create_market";
-                let _market = julia::_call(&mut frame, function, &args).unwrap().into_jlrs_result();
-
-                match _market {
-                    Ok(value) => {
-                        let _convert_function = "add_to_markets";
-                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
-                        match _convert_result {
-                            Ok(value) => {
-                                let j_markets = value;
-                                list.push(j_markets);
-                                println!("Added market to markets")},
-                            Err(error) => println!("Error adding market to markets: {:?}", error),
-                        }
-                    }
-                    Err(error) => println!("Error adding market to markets2: {:?}", error),
-                }
-
-                Ok(())
-
-            }).expect("result is an error");
-
-        }
-
-        //Creating groups
-
-        for (key, value) in &groups {
-
-            // An extended target provides a target for the result we want to return and a frame for
-            // temporary data.
-            let _x = julia.scope(|mut frame| {
-
-                let d1 = JuliaString::new(&mut frame, key).as_value();
-                let d2 = JuliaString::new(&mut frame, &value.g_type).as_value();
-                let d3 = JuliaString::new(&mut frame, &value.entity).as_value();
-
-                let args = [d1,d2,d3];
-
-
-                let function = "create_group";
-                let _group = julia::_call(&mut frame, function, &args).unwrap().into_jlrs_result();
-
-                match _group {
-                    Ok(value) => {
-                        let _convert_function = "add_to_groups";
-                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
-                        match _convert_result {
-                            Ok(value) => {
-                                let j_groups = value;
-                                list.push(j_groups);
-                                println!("Added group to groups")},
-                            Err(error) => println!("Error adding group to groups: {:?}", error),
-                        }
-                    }
-                    Err(error) => println!("Error adding group to groups2: {:?}", error),
-                }
-
-                Ok(())
-
-            }).expect("result is an error");
-
-        }
-
-        //Creating inflow_blocks (empty)
-
-        //Creating gen_constraints
-
-        for (key, value) in &gen_constraints {
-
-            // An extended target provides a target for the result we want to return and a frame for
-            // temporary data.
-            let _x = julia.scope(|mut frame| {
-
-                let d1 = JuliaString::new(&mut frame, key).as_value();
-                let d2 = JuliaString::new(&mut frame, &value.gc_type).as_value();
-                let d3 = Value::new(&mut frame, value.is_setpoint);
-                let d4 = Value::new(&mut frame, value.penalty);
-
-                let args = [d1,d2,d3, d4];
-
-
-                let function = "create_genconstraint";
-                let _genconstraint = julia::_call(&mut frame, function, &args).unwrap().into_jlrs_result();
-
-                match _genconstraint {
-                    Ok(value) => {
-                        let _convert_function = "add_to_genconstraints";
-                        let _convert_result = julia::_call1(&mut frame, _convert_function, value).unwrap();
-                        match _convert_result {
-                            Ok(value) => {
-                                let j_genconstraints = value;
-                                list.push(j_genconstraints);
-                                println!("Added genconstraint to genconstraints")},
-                            Err(error) => println!("Error adding gen constraint to gen_constraints: {:?}", error),
-                        }
-                    }
-                    Err(error) => println!("Error adding gen constraint to gen_constraints2: {:?}", error),
-                }
-
-                Ok(())
-
-            }).expect("result is an error");
-
-        }
-
-        let _x = julia.scope(|mut frame| {
-
-            //Boolean parameters
-
-            let j_contains_reserves = Value::new(&mut frame, contains_reserves);
-            let j_contains_online = Value::new(&mut frame, contains_online);
-            let j_contains_state = Value::new(&mut frame, contains_state);
-            let j_contains_piecewise_eff = Value::new(&mut frame, contains_piecewise_eff);
-            let j_contains_risk = Value::new(&mut frame, contains_risk);
-            let j_contains_delay = Value::new(&mut frame, contains_delay);
-            //let j_contains_diffusion = Value::new(&mut frame, contains_diffusion);
-
-
-            //Scenarios
-
-            let r_scenarios: Vec<(String, f64)> = vec![
-                (String::from("s1"), 0.5),
-                (String::from("s2"), 0.5),
-            ];
-
-            let j_scenarios = julia::to_ordered_dict(frame.as_extended_target(), &r_scenarios).unwrap();
-
-
-            //reserve_type on tyhjä
-
-            let r_reserve_type: Vec<(String, f64)> = Vec::new();
-
-            let j_reserve_type = julia::to_ordered_dict(frame.as_extended_target(), &r_reserve_type).unwrap();
-
-            //Risk
-
-            let r_risk: Vec<(String, f64)> = vec![
-                (String::from("alfa"), 0.1),
-                (String::from("beta"), 0.0),
-            ];
-
-            let j_risk = julia::to_ordered_dict(frame.as_extended_target(), &r_risk).unwrap();
-
-            //inflow_blocks
-
-            //gen_constraints
-
-            let _return_inflowblocks = "return_inflowblocks";
-            let args1 = [];
-            let inflowblocks = julia::_call(&mut frame, _return_inflowblocks, &args1).unwrap().into_jlrs_result();
-
-            match inflowblocks {
-                Ok(value) => {
-                    let j_inflowblocks = value;
-                    list.push(j_inflowblocks);
-                    println!("Added inflowblocks")},
-                Err(error) => println!("Error adding inflowblocks: {:?}", error),
-            }
-
-            let args = [
-                j_contains_reserves,
-                j_contains_online,
-                j_contains_state,
-                j_contains_piecewise_eff,
-                j_contains_risk,
-                j_contains_delay,
-                list[0],
-                list[1],
-                list[2],
-                list[3],
-                j_scenarios,
-                j_risk,
-                list[4],
-                list[5]
-
-            ];
-
-            let function = "create_inputdata";
-
-            let _input_data = julia::_call(&mut frame, function, &args).unwrap().into_jlrs_result();
-
-            Ok(())
-
-
-
-        }).expect("result is an error");
-
-
-
-
-
-    }
-
-    */
 
 
     pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64, data: Vec<(String, f64)>) {

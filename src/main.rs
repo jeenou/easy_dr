@@ -55,6 +55,38 @@ fn main() {
         ts_data: time_series_data_vec,
     };
 
+    //Creating node_diffusion
+
+    let diffusion_1 = data::NodeDiffusion {
+
+        name: String::from("diffusion_1"),
+        node1: String::from("interiorair"),
+        node2: String::from("buildingenvelope"),
+        diff_coeff: 0.5, 
+        
+    };
+
+    let diffusion_2 = data::NodeDiffusion {
+
+        name: String::from("diffusion_2"),
+        node1: String::from("buildingenvelope"),
+        node2: String::from("outside"),
+        diff_coeff: 0.4,   
+    };
+
+    //Creating node_delay
+
+    let delay_1 = data::NodeDelay {
+
+        name: String::from("delay_1"),
+        node1: String::from("dh1"),
+        node2: String::from("dh2"),
+        delay: 2.0,
+        min_flow: 0.0,
+        max_flow: 20.0,
+        
+    };
+
     //Creating nodes
 
     let _interiorair = data::Node {
@@ -101,12 +133,24 @@ fn main() {
         inflow: &time_series_data,
     };
 
+    let _node_history_1 = data::NodeHistory {
+        node: String::from("electricitygrid"),
+        steps: &time_series_data,
+    };
+
     let mut _nodes: HashMap<&String, &data::Node> = HashMap::new();
+    let mut _node_diffusion: HashMap<&String, &data::NodeDiffusion> = HashMap::new();
+    let mut _node_delay: HashMap<&String, &data::NodeDelay> = HashMap::new();
 
     _nodes.insert(&_interiorair.name, &_interiorair);
     _nodes.insert(&_building_envelope.name, &_building_envelope);
     _nodes.insert(&_outside.name, &_outside);
     _nodes.insert(&_electricitygrid.name, &_electricitygrid);
+
+    _node_diffusion.insert(&diffusion_1.name, &diffusion_1);
+    _node_diffusion.insert(&diffusion_2.name, &diffusion_2);
+
+    _node_delay.insert(&delay_1.name, &delay_1);
 
 
     let mut _processes: HashMap<&String, &data::Process> = HashMap::new();
@@ -166,7 +210,7 @@ fn main() {
     let mut _markets: HashMap<&String, &data::Market> = HashMap::new();
     let mut _groups: HashMap<&String, &data::Group> = HashMap::new();
     let mut _genconstraints: HashMap<&String, &data::GenConstraint> = HashMap::new();
-
+    
     let _npe = data::Market {
         name: String::from("npe"),
         m_type: String::from("energy"),
@@ -221,7 +265,7 @@ TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
 
-    data::_predicer2(false, false, false, false, false, false,_nodes, _processes, _markets, _groups, _genconstraints, predicer_dir);
+    data::_predicer(false, false, false, false, false, false, true, _nodes, _processes, _markets, _groups, _genconstraints, _node_diffusion, _node_delay, predicer_dir);
 
 
 
