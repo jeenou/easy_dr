@@ -28,6 +28,7 @@ pub mod data {
         pub max_online: f64,
         pub max_offline: f64,
         pub initial_state: f64,
+        pub topos: &'a Vec<Topology>,
         pub delay: f64,
         pub eff_ops: &'a Vec<String>,
     }
@@ -110,9 +111,8 @@ pub mod data {
 
 
     pub struct Topology {
-        pub source: bool,
-        pub sink: bool,
-        pub name: String,
+        pub source: String,
+        pub sink: String,
         pub capacity: f64,
         pub vom_cost: f64,
         pub ramp_up: f64,
@@ -278,25 +278,46 @@ pub mod data {
                 julia::call(&frame, &["Pkg", "instantiate"], &[]);
                 Value::eval_string(&mut frame, "using Predicer");
 
-                //Create processes
+                //Create processes TÄSSÄ TOPOLOGY ONGELMA
 
                 for (key, value) in &processes {
+
 
                     let p_d1 = JuliaString::new(&mut frame, key).as_value();
                     let p_d2 = Value::new(&mut frame, value.conversion);
 
                     let process = julia::call(&mut frame, &["Predicer", "create_process"], &[p_d1, p_d2]).into_jlrs_result();
 
+                    let mut process_with_topo: Value<'_, '_>;
+
                     match process {
                         Ok(process_value) => {
-                            let _add_to_processes_result = julia::call(&mut frame, &["Predicer", "add_to_processes"], &[process_value]);
-                            match _add_to_processes_result {
-                                Ok(_) => println!("Added to processes!"),
-                                Err(error) => println!("Error adding process to processes: {:?}", error),
+
+                            process_with_topo = process_value;
+
+                            for topo in value.topos {
+
+                                let t_d1 = JuliaString::new(&mut frame, &topo.source).as_value();
+                                let t_d2 = JuliaString::new(&mut frame, &topo.sink).as_value();
+                                let t_d3 = Value::new(&mut frame, topo.capacity);
+                                let t_d4 = Value::new(&mut frame, topo.vom_cost);
+                                let t_d5 = Value::new(&mut frame, topo.ramp_up);
+                                let t_d6 = Value::new(&mut frame, topo.ramp_down);
+
+                                let _create_topology = julia::call(&mut frame, &["Predicer", "create_topology"], &[t_d1, t_d2, t_d3, t_d4, t_d5, t_d6]);
+
+                                //Miten tämä pitäisi tehdä?
+                                
+                                //Tässä pitäisi luoda prosessi ja lisätä topologyt process-muuttujaan kohtaan Process.topos::Vector{Topology}
+
                             }
+
+                            //Tässä lisätään prosessi h_processes ordered dictiin
+                            //let _add_to_processes = julia::call(&mut frame, &["Predicer", "add_to_processes"], &[process_with_topo]).into_jlrs_result();
                         }
-                        Err(error) => println!("Error adding process to processes2: {:?}", error),
+                        Err(error) => println!("Error creating process: {:?}", error),
                     }
+
                 }
 
                 let _processes = julia::call(&mut frame, &["Predicer", "return_processes"], &[]).into_jlrs_result();
@@ -633,11 +654,15 @@ pub mod data {
                     j_contains_diffusion,
                 ];
 
+                /*
+
+                InputData ei ole oikein, ei toimi vielä 
+
                 let _input_data = julia::call(&mut frame, &["Predicer", "create_inputdata2"], &i_args).into_jlrs_result();
 
                 match _input_data {
                     Ok(id_value) => {
-                        let _generate_model_result = julia::call(&mut frame, &["Predicer", "generate_model"], &[id_value]);
+                        let _generate_model_result = julia::call(&mut frame, &["Predicer", "solve_hertta"], &[id_value]);
                         match _generate_model_result {
                             Ok(_gm_value) => {
                                 println!("Generated model")},
@@ -646,6 +671,8 @@ pub mod data {
                     }
                     Err(error) => println!("Error generating model: {:?}", error),
                 }
+
+                */
 
                 Ok(())
 

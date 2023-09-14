@@ -155,6 +155,33 @@ fn main() {
 
     let mut _processes: HashMap<&String, &data::Process> = HashMap::new();
 
+    //Creating topology for processes
+
+    let topology1 = data::Topology {
+
+        source: String::from("electricitygrid"),
+        sink: String::from("electricheater"),
+        capacity: 7.5,
+        vom_cost: 0.0,
+        ramp_up: 1.0,
+        ramp_down: 1.0
+    };
+
+    let topology2 = data::Topology {
+
+        source: String::from("electricheater"),
+        sink: String::from("interiorair"),
+        capacity: 7.5,
+        vom_cost: 0.0,
+        ramp_up: 1.0,
+        ramp_down: 1.0
+    };
+
+    let topo_vec: Vec<data::Topology> = vec![
+        topology1,
+        topology2,
+    ];
+    
     //Creating process
 
     //Mitä eff_ops sisältää?
@@ -179,32 +206,12 @@ fn main() {
         max_online: 0.0,
         max_offline: 0.0,
         initial_state: 0.0,
-        delay: 0.0,
-        eff_ops: &process_vec,
-    };
-
-    let _electricheater2 = data::Process {
-        name: String::from("electricheater2"),
-        is_cf: false,
-        is_cf_fix: false,
-        is_online: false,
-        is_res: false,
-        conversion: 2, //1,2 tai 3
-        eff: 1.0,
-        load_min: 0.0,
-        load_max: 1.0,
-        start_cost: 0.0,
-        min_online: 0.0,
-        min_offline: 0.0,
-        max_online: 0.0,
-        max_offline: 0.0,
-        initial_state: 0.0,
+        topos: &topo_vec,
         delay: 0.0,
         eff_ops: &process_vec,
     };
 
     _processes.insert(&_electricheater1.name, &_electricheater1);
-    _processes.insert(&_electricheater2.name, &_electricheater2);
 
 
     let mut _markets: HashMap<&String, &data::Market> = HashMap::new();
