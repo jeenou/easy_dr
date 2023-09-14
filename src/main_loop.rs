@@ -1,23 +1,22 @@
-
-use std::sync::mpsc::{Receiver};
-use std::process::{Command, Stdio};
 use std::io::Write;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::mpsc::Receiver;
 use umya_spreadsheet::*;
 
 // Define an enum for representing different types of tasks
 pub enum _Task {
-    StartProcess,   // A task to start a process
-    QuitProcess     // A task to quit a process
+    StartProcess, // A task to start a process
+    QuitProcess,  // A task to quit a process
 }
 
 // Check if a directory exists at the given path
 pub fn _directory_exists(path: &str) -> bool {
-    let dir = Path::new(path);  // Create a Path object from the path string
-    dir.exists() && dir.is_dir()  // Check if the path exists and is a directory
+    let dir = Path::new(path); // Create a Path object from the path string
+    dir.exists() && dir.is_dir() // Check if the path exists and is a directory
 }
 
-// This function takes a vector of vectors of strings as input 
+// This function takes a vector of vectors of strings as input
 // and writes the data to an Excel file.
 pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
     // Create a new Excel workbook.
@@ -27,7 +26,10 @@ pub fn _write_file_vector2(values: Vec<Vec<std::string::String>>) {
     for (i, row_values) in values.iter().enumerate() {
         for (j, cell_value) in row_values.iter().enumerate() {
             let cell_ref = format!("{}{}", (j as u8 + b'A') as char, i + 1);
-            book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut(&cell_ref).set_value(cell_value);
+            book.get_sheet_by_name_mut("Sheet1")
+                .unwrap()
+                .get_cell_mut(&cell_ref)
+                .set_value(cell_value);
         }
     }
 
@@ -54,7 +56,6 @@ pub fn _create_model(devices: Vec<String>, parameters: Vec<String>) -> Vec<Vec<S
     result
 }
 
-
 // This function runs an infinite loop that receives tasks from a channel
 // and processes them accordingly until it receives a QuitProcess task.
 pub fn _task_loop(rx: Receiver<_Task>) {
@@ -62,19 +63,16 @@ pub fn _task_loop(rx: Receiver<_Task>) {
 
     while running {
         match rx.try_recv() {
-            Ok(received) => {
-                match received {
-                    _Task::StartProcess => {
-                        println!("start process");
-                        _start();
-
-                    },
-                    _Task::QuitProcess => {
-                        println!("quit process");
-                        running = false;
-                    }
+            Ok(received) => match received {
+                _Task::StartProcess => {
+                    println!("start process");
+                    _start();
                 }
-            }
+                _Task::QuitProcess => {
+                    println!("quit process");
+                    running = false;
+                }
+            },
             Err(_) => {
                 break;
             }
@@ -92,13 +90,12 @@ fn _start() {
     */
 
     _open_predicer();
-    
 }
 //Creates a new process.
 fn _create_process() {
     Command::new("mspaint")
-    .spawn()
-    .expect("failed to start paint program");
+        .spawn()
+        .expect("failed to start paint program");
 }
 
 fn _open_predicer() {
@@ -108,17 +105,22 @@ fn _open_predicer() {
     path.push("Predicer");
 
     let mut child = Command::new("julia")
-    .current_dir(path)
-    .args(&[
-        "--eval", "using Pkg; Pkg.activate(\".\"); Pkg.instantiate();",
-        "--eval", "using Predicer",
-        "--eval", "mc, input_data = Predicer.generate_model(\"input_data/input_data.xlsx\")",
-        "--eval", "Predicer.solve_model(mc)",
-        "--eval", "Predicer.write_bid_matrix(mc, input_data)"
-    ])
-    .stdin(Stdio::piped())
-    .spawn()
-    .expect("failed to execute process");
+        .current_dir(path)
+        .args(&[
+            "--eval",
+            "using Pkg; Pkg.activate(\".\"); Pkg.instantiate();",
+            "--eval",
+            "using Predicer",
+            "--eval",
+            "mc, input_data = Predicer.generate_model(\"input_data/input_data.xlsx\")",
+            "--eval",
+            "Predicer.solve_model(mc)",
+            "--eval",
+            "Predicer.write_bid_matrix(mc, input_data)",
+        ])
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("failed to execute process");
 
     let input = b"]\nactivate .\nbackspace\n";
     let child_stdin = child.stdin.as_mut().unwrap();

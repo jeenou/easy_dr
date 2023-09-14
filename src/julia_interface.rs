@@ -1,22 +1,31 @@
-use jlrs::data::managed::value::ValueResult;
-use jlrs::prelude::*;
-use jlrs::data::managed::value::ValueData;
-use jlrs::memory::target::ExtendedTarget;
-use jlrs::data::managed::union_all::UnionAll;
 use jlrs::data::managed::function::Function;
+use jlrs::data::managed::union_all::UnionAll;
+use jlrs::data::managed::value::ValueData;
+use jlrs::data::managed::value::ValueResult;
+use jlrs::memory::target::ExtendedTarget;
+use jlrs::prelude::*;
 
-fn prepare_callable<'target, 'data, T: Target<'target>>(target: T, function: &[&str]) -> Function<'target, 'data> {
+fn prepare_callable<'target, 'data, T: Target<'target>>(
+    target: T,
+    function: &[&str],
+) -> Function<'target, 'data> {
     unsafe {
         let mut module = Module::main(&target);
-        for submodule in &function[0..function.len()-1] {
-            module = module.submodule(&target, submodule).expect(&format!("error with module {}", &submodule)).as_managed();
+        for submodule in &function[0..function.len() - 1] {
+            module = module
+                .submodule(&target, submodule)
+                .expect(&format!("error with module {}", &submodule))
+                .as_managed();
         }
         let function_name = function.last().expect("function name missing");
-        module.function(&target, function_name).expect(&format!("error with function {}", &function_name)).as_managed()
+        module
+            .function(&target, function_name)
+            .expect(&format!("error with function {}", &function_name))
+            .as_managed()
     }
 }
 
-    pub fn call<'target, 'data, T: Target<'target>>(
+pub fn call<'target, 'data, T: Target<'target>>(
     target: T,
     function: &[&str],
     args: &[Value<'_, 'data>],
@@ -52,8 +61,7 @@ where
             Err(_) => {
                 // Safety: using this package is fine.
                 unsafe {
-                    Value::eval_string(&mut frame, "using OrderedCollections")
-                        .into_jlrs_result()?
+                    Value::eval_string(&mut frame, "using OrderedCollections").into_jlrs_result()?
                 };
                 Module::main(&frame).global(&mut frame, "OrderedDict")?
             }

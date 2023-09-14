@@ -1,26 +1,21 @@
-
-use std::sync::mpsc::{Sender};
 use std::collections::HashMap;
 use std::env;
+use std::sync::mpsc::Sender;
 mod main_loop;
 mod utilities;
 use hertta::predicer;
 
-
-
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
-
     tx.send(main_loop::_Task::StartProcess).unwrap();
     tx.send(main_loop::_Task::QuitProcess).unwrap();
     tx.send(main_loop::_Task::StartProcess).unwrap();
 }
 
-
 fn main() {
-
     let args: Vec<String> = env::args().collect();
-    let predicer_dir = args.get(1).expect("first argument should be path to Predicer");
-
+    let predicer_dir = args
+        .get(1)
+        .expect("first argument should be path to Predicer");
 
     //Create timeseries
 
@@ -54,16 +49,13 @@ fn main() {
     //Creating node_diffusion
 
     let diffusion_1 = predicer::NodeDiffusion {
-
         name: String::from("diffusion_1"),
         node1: String::from("interiorair"),
         node2: String::from("buildingenvelope"),
         diff_coeff: 0.5,
-
     };
 
     let diffusion_2 = predicer::NodeDiffusion {
-
         name: String::from("diffusion_2"),
         node1: String::from("buildingenvelope"),
         node2: String::from("outside"),
@@ -73,14 +65,12 @@ fn main() {
     //Creating node_delay
 
     let delay_1 = predicer::NodeDelay {
-
         name: String::from("delay_1"),
         node1: String::from("dh1"),
         node2: String::from("dh2"),
         delay: 2.0,
         min_flow: 0.0,
         max_flow: 20.0,
-
     };
 
     //Creating nodes
@@ -148,43 +138,35 @@ fn main() {
 
     _node_delay.insert(&delay_1.name, &delay_1);
 
-
     let mut _processes: HashMap<&String, &predicer::Process> = HashMap::new();
 
     //Creating topology for processes
 
     let topology1 = predicer::Topology {
-
         source: String::from("electricitygrid"),
         sink: String::from("electricheater"),
         capacity: 7.5,
         vom_cost: 0.0,
         ramp_up: 1.0,
-        ramp_down: 1.0
+        ramp_down: 1.0,
     };
 
     let topology2 = predicer::Topology {
-
         source: String::from("electricheater"),
         sink: String::from("interiorair"),
         capacity: 7.5,
         vom_cost: 0.0,
         ramp_up: 1.0,
-        ramp_down: 1.0
+        ramp_down: 1.0,
     };
 
-    let topo_vec: Vec<predicer::Topology> = vec![
-        topology1,
-        topology2,
-    ];
+    let topo_vec: Vec<predicer::Topology> = vec![topology1, topology2];
 
     //Creating process
 
     //Mitä eff_ops sisältää?
 
-    let process_vec: Vec<String> = vec![
-        ("eff_ops".to_string()),
-    ];
+    let process_vec: Vec<String> = vec![("eff_ops".to_string())];
 
     let _electricheater1 = predicer::Process {
         name: String::from("electricheater1"),
@@ -208,7 +190,6 @@ fn main() {
     };
 
     _processes.insert(&_electricheater1.name, &_electricheater1);
-
 
     let mut _markets: HashMap<&String, &predicer::Market> = HashMap::new();
     let mut _groups: HashMap<&String, &predicer::Group> = HashMap::new();
@@ -234,30 +215,26 @@ fn main() {
     let _p1 = predicer::Group {
         name: String::from("p1"),
         g_type: String::from("process"),
-        entity: String::from("electricheater")
+        entity: String::from("electricheater"),
     };
 
     /*Key: c_interiorair_up,
-    Value: GenConstraint("c_interiorair_up", "st", true, 1000.0,
-    ConFactor[ConFactor("state", ("interiorair", ""),
-    Predicer.TimeSeriesData(TimeSeries[TimeSeries("s1", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)]),
-TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)])]))], Predicer.TimeSeriesData(TimeSeries[])) */
+        Value: GenConstraint("c_interiorair_up", "st", true, 1000.0,
+        ConFactor[ConFactor("state", ("interiorair", ""),
+        Predicer.TimeSeriesData(TimeSeries[TimeSeries("s1", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)]),
+    TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)])]))], Predicer.TimeSeriesData(TimeSeries[])) */
 
     _groups.insert(&_p1.name, &_p1);
 
-    let _confactor = predicer::ConFactor{
-
+    let _confactor = predicer::ConFactor {
         var_type: String::from(""),
-        flow: (String::from(""),String::from("")),
-        data: &time_series_data
+        flow: (String::from(""), String::from("")),
+        data: &time_series_data,
     };
 
-    let genconstraint_vec: Vec<predicer::ConFactor> = vec![
-        _confactor,
-    ];
+    let genconstraint_vec: Vec<predicer::ConFactor> = vec![_confactor];
 
     let _c_interiorair_up = predicer::GenConstraint {
-
         name: String::from("c_interiorair_up"),
         gc_type: String::from("st"),
         is_setpoint: true,
@@ -268,5 +245,21 @@ TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
 
-    predicer::_predicer(false, false, false, false, false, false, true, _nodes, _processes, _markets, _groups, _genconstraints, _node_diffusion, _node_delay, predicer_dir);
+    predicer::_predicer(
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        _nodes,
+        _processes,
+        _markets,
+        _groups,
+        _genconstraints,
+        _node_diffusion,
+        _node_delay,
+        predicer_dir,
+    );
 }
