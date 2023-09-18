@@ -2,6 +2,7 @@ use jlrs::data::managed::function::Function;
 use jlrs::data::managed::union_all::UnionAll;
 use jlrs::data::managed::value::ValueData;
 use jlrs::data::managed::value::ValueResult;
+use jlrs::memory::target::frame::GcFrame;
 use jlrs::memory::target::ExtendedTarget;
 use jlrs::prelude::*;
 
@@ -40,7 +41,19 @@ pub fn call<'target, 'data, T: Target<'target>>(
     }
 }
 
-// Convert a slice of pairs of strings and i32's to an `OrderedDict`
+pub fn activate_julia_project<'target, 'data, T: Target<'target>>(
+    target: T,
+    project_dir: Value<'_, 'data>,
+) -> Result<(), String> {
+    unsafe {
+        Value::eval_string(&target, "using Pkg");
+    }
+    call(&target, &["Pkg", "activate"], &[project_dir]);
+    call(&target, &["Pkg", "instantiate"], &[]);
+    Ok(())
+}
+
+// Convert a slice of pairs of strings and f64's to an `OrderedDict`
 pub fn to_ordered_dict<'target, T>(
     target: ExtendedTarget<'target, '_, '_, T>,
     data: &[(String, f64)],
@@ -52,16 +65,15 @@ where
     // temporary data.
     let (target, frame) = target.split();
     frame.scope(|mut frame| {
-        // Get OrderedDict, load OrderedCollections if it can't be found. An error is returned if
-        // OrderedCollections hasn't been installed yet.
-        // OrderedDict is a UnionAll because it has type parameters that must be set
         let ordered_dict = Module::main(&frame).global(&mut frame, "OrderedDict");
         let ordered_dict_ua = match ordered_dict {
             Ok(ordered_dict) => ordered_dict,
             Err(_) => {
                 // Safety: using this package is fine.
                 unsafe {
-                    Value::eval_string(&mut frame, "using OrderedCollections").into_jlrs_result()?
+                    // Predicer depends on DataStructures which in turn depends on OrderedCollections
+                    // which contains OrderedDict.
+                    Value::eval_string(&mut frame, "using DataStructures").into_jlrs_result()?
                 };
                 Module::main(&frame).global(&mut frame, "OrderedDict")?
             }
@@ -102,4 +114,63 @@ where
         }
         Ok(ordered_dict.root(target))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use jlrs::prelude::*;
+
+    #[test]
+    fn test_all_things_requiring_julia_instance() -> Result<(), String> {
+        // We can instantiate only a single Julia in a thread at a time,
+        // so all tests that require a Julia instance have been gathered under this umbrella function.
+        let mut pending = unsafe { RuntimeBuilder::new().start().expect("failed to init Julia") };
+        let mut stack_frame = StackFrame::new();
+        let mut julia = pending.instance(&mut stack_frame);
+        julia_call_that_sums_two_numbers(&mut julia)?;
+        create_simple_ordered_dict_for_julia(&mut julia)?;
+        Ok(())
+    }
+    fn julia_call_that_sums_two_numbers(julia: &mut Julia) -> Result<(), String> {
+        let sum = julia
+            .scope(|mut gc_frame| {
+                let x = Value::new(&mut gc_frame, 23i64);
+                let y = Value::new(&mut gc_frame, 5i64);
+                call(&mut gc_frame, &["+"], &[x, y])
+                    .into_jlrs_result()
+                    .unwrap()
+                    .unbox::<i64>()
+            })
+            .unwrap();
+        if sum != 28i64 {
+            return Err(String::from("sum not what was expected"));
+        }
+        Ok(())
+    }
+
+    fn create_simple_ordered_dict_for_julia(julia: &mut Julia) -> Result<(), String> {
+        let dict_data = vec![("a".to_string(), 2.3)];
+        julia.scope(|mut gc_frame| {
+            let project_dir = JuliaString::new(&mut gc_frame, "Predicer").as_value();
+            activate_julia_project(&mut gc_frame, project_dir);
+            let dict = to_ordered_dict(gc_frame.as_extended_target(), &dict_data).unwrap();
+            let length = call(&mut gc_frame, &["length"], &[dict])
+                .into_jlrs_result()
+                .unwrap()
+                .unbox::<i64>()
+                .unwrap();
+            assert_eq!(length, 1);
+            let key = JuliaString::new(&mut gc_frame, "a").as_value();
+            let default_value = Value::new(&mut gc_frame, 99.0);
+            let value = call(&mut gc_frame, &["get"], &[dict, key, default_value])
+                .into_jlrs_result()
+                .unwrap()
+                .unbox::<f64>()
+                .unwrap();
+            assert_eq!(value, 2.3);
+            Ok(())
+        });
+        Ok(())
+    }
 }

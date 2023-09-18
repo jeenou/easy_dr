@@ -9,7 +9,7 @@ pub struct Process<'a> {
     pub is_cf_fix: bool,
     pub is_online: bool,
     pub is_res: bool,
-    pub conversion: i64, //1,2 tai 3
+    pub conversion: i64,
     pub eff: f64,
     pub load_min: f64,
     pub load_max: f64,
