@@ -1,11 +1,11 @@
-use std::io;
-use std::fs;
-use std::error::Error;
-use std::path::PathBuf;
-use std::io::BufReader;
-use umya_spreadsheet::*;
 use std::collections::HashMap;
+use std::error::Error;
+use std::fs;
 use std::fs::File;
+use std::io;
+use std::io::BufReader;
+use std::path::PathBuf;
+use umya_spreadsheet::*;
 
 // This function takes three arguments:
 //   - bool_val: a boolean value to insert into the vector
@@ -30,13 +30,9 @@ pub fn _insert_into_vector(bool_val: bool, int_val: i32, vec: &mut Vec<Vec<(bool
 // The function reads the contents of the file into a vector of strings and returns it.
 
 pub fn _read_file_to_vector(filename: &str) -> Vec<String> {
+    let contents = fs::read_to_string(filename).expect("Error reading file");
 
-    let contents = fs::read_to_string(filename)
-        .expect("Error reading file");
-
-    let lines = contents.split("\n")
-        .map(|s| s.to_string())
-        .collect();
+    let lines = contents.split("\n").map(|s| s.to_string()).collect();
 
     lines
 }
@@ -45,19 +41,20 @@ pub fn _read_file_to_vector(filename: &str) -> Vec<String> {
 //   - path: a mutable reference to a `PathBuf` object representing the path to a file to read
 // The function reads an Excel file at the given path, modifies its contents, and writes it back to the same file.
 pub fn _read_file(path: &PathBuf) {
-
     let mut book = reader::xlsx::read(path).unwrap();
 
     // Modify the contents of the file by setting the value of cell A1 in the first sheet to "TEST1".
 
-    book.get_sheet_by_name_mut("Sheet1").unwrap().get_cell_mut("A1").set_value("TEST1");
+    book.get_sheet_by_name_mut("Sheet1")
+        .unwrap()
+        .get_cell_mut("A1")
+        .set_value("TEST1");
 
     let _ = writer::xlsx::write(&book, path);
 }
 
 // This function writes data to an Excel file
 pub fn _write_file(_path: &PathBuf, _data: Vec<String>) {
-
     // Create a new empty Excel workbook
     let mut book = new_file();
 
@@ -66,13 +63,15 @@ pub fn _write_file(_path: &PathBuf, _data: Vec<String>) {
 
     // Loop over the data and add each string to a new row in the worksheet
     for (row, value) in _data.iter().enumerate() {
-        book.get_sheet_mut(&1).unwrap().get_cell_by_column_and_row_mut(&1, &(row as u32)).set_value(value);
+        book.get_sheet_mut(&1)
+            .unwrap()
+            .get_cell_by_column_and_row_mut(&1, &(row as u32))
+            .set_value(value);
     }
-    
+
     // Write the workbook to the specified file path in Excel (.xlsx) format
     let _ = writer::xlsx::write(&book, _path);
 }
-
 
 // Function to read a list of device names from user input and return as a vector of strings
 pub fn _read_devices() -> Vec<String> {
@@ -84,7 +83,9 @@ pub fn _read_devices() -> Vec<String> {
 
     loop {
         input.clear();
-        io::stdin().read_line(&mut input).expect("Failed to read input");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read input");
 
         if input.trim().is_empty() {
             break;
@@ -135,7 +136,7 @@ pub fn _csv_to_hashmap(file_path: PathBuf) -> Result<HashMap<String, String>, Bo
     Ok(map)
 }
 
-// This function generates and returns a vector of tuples. 
+// This function generates and returns a vector of tuples.
 //Each tuple contains a string and an integer.
 pub fn _generate_data() -> Vec<(String, i32)> {
     vec![
@@ -150,5 +151,3 @@ pub fn _generate_data() -> Vec<(String, i32)> {
 Key: s1, Value: 0.5
 Key: s2, Value: 0.5
 */
-
-
