@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::env;
-use std::sync::mpsc::Sender;
-mod main_loop;
-mod utilities;
-use hertta::predicer;
+use std::sync::mpsc::{channel, Sender};
+mod predicer;
+use hertta::julia_interface;
+use hertta::utilities;
+use hertta::main_loop;
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
     tx.send(main_loop::_Task::StartProcess).unwrap();
@@ -11,7 +12,8 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
     tx.send(main_loop::_Task::StartProcess).unwrap();
 }
 
-fn main() {
+pub fn run_predicer() {
+
     let args: Vec<String> = env::args().collect();
     let predicer_dir = args
         .get(1)
@@ -19,9 +21,65 @@ fn main() {
 
     //Create timeseries
 
-    let series1: Vec<(String, String)> = vec![
-        ("Data1".to_string(), "Value1".to_string()),
-        ("Data2".to_string(), "Value2".to_string()),
+    /*
+    TimeSeries(
+"s1", Tuple{AbstractString, Number}[
+("2022-04-20T00:00:00+00:00", 3), 
+("2022-04-20T01:00:00+00:00", 0), 
+("2022-04-20T02:00:00+00:00", 4), 
+("2022-04-20T03:00:00+00:00", -1),
+("2022-04-20T04:00:00+00:00", 5), 
+("2022-04-20T05:00:00+00:00", -4), 
+("2022-04-20T06:00:00+00:00", -5), 
+("2022-04-20T07:00:00+00:00", -2), 
+("2022-04-20T08:00:00+00:00", 4), 
+("2022-04-20T09:00:00+00:00", 0)])
+     */
+
+    let series1: Vec<(String, i64)> = vec![
+        ("Data1".to_string(), 0),
+        ("Data2".to_string(), 0),
+    ];
+
+    let outside_timeseries_s1: Vec<(String, i64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 3),
+        ("2022-04-20T01:00:00+00:00".to_string(), 0),
+        ("2022-04-20T02:00:00+00:00".to_string(), 4),
+        ("2022-04-20T03:00:00+00:00".to_string(), -1),
+        ("2022-04-20T04:00:00+00:00".to_string(), 5),
+        ("2022-04-20T05:00:00+00:00".to_string(), -4),
+        ("2022-04-20T06:00:00+00:00".to_string(), -5),
+        ("2022-04-20T07:00:00+00:00".to_string(), -2),
+        ("2022-04-20T08:00:00+00:00".to_string(), 4),
+        ("2022-04-20T09:00:00+00:00".to_string(), 0),
+    ];
+
+    let outside_timeseries_s2: Vec<(String, i64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), -2),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4),
+        ("2022-04-20T02:00:00+00:00".to_string(), 4),
+        ("2022-04-20T03:00:00+00:00".to_string(), -1),
+        ("2022-04-20T04:00:00+00:00".to_string(), 1),
+        ("2022-04-20T05:00:00+00:00".to_string(), -3),
+        ("2022-04-20T06:00:00+00:00".to_string(), 0),
+        ("2022-04-20T07:00:00+00:00".to_string(), -5),
+        ("2022-04-20T08:00:00+00:00".to_string(), -3),
+        ("2022-04-20T09:00:00+00:00".to_string(), -2),
+    ];
+
+    let outside_ts_s1 = predicer::TimeSeries {
+        scenario: "s1".to_string(),
+        series: outside_timeseries_s1,
+    };
+
+    let outside_ts_s2 = predicer::TimeSeries {
+        scenario: "s2".to_string(),
+        series: outside_timeseries_s2,
+    };
+
+    let series2: Vec<(String, i64)> = vec![
+        ("Data3".to_string(), 0),
+        ("Data4".to_string(), 0),
     ];
 
     let time_series1 = predicer::TimeSeries {
@@ -29,14 +87,11 @@ fn main() {
         series: series1,
     };
 
-    let series2: Vec<(String, String)> = vec![
-        ("Data3".to_string(), "Value3".to_string()),
-        ("Data4".to_string(), "Value4".to_string()),
-    ];
     let time_series2 = predicer::TimeSeries {
         scenario: "Scenario2".to_string(),
         series: series2,
     };
+
 
     // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
     let time_series_data_vec: Vec<predicer::TimeSeries> = vec![time_series1, time_series2];
@@ -44,6 +99,12 @@ fn main() {
     // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
     let time_series_data: predicer::TimeSeriesData = predicer::TimeSeriesData {
         ts_data: time_series_data_vec,
+    };
+
+    let outside_ts_vec: Vec<predicer::TimeSeries> = vec![outside_ts_s1, outside_ts_s2];
+
+    let outside_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: outside_ts_vec,
     };
 
     //Creating node_diffusion
@@ -75,6 +136,20 @@ fn main() {
 
     //Creating nodes
 
+    let interiorair_state = predicer::State {
+
+        in_max: 1.0e10,
+        out_max: 1.0e10,
+        state_loss_proportional: 0.0,
+        state_max: 308.15,
+        state_min: 273.15,
+        initial_state: 296.15,
+        is_temp: true,
+        t_e_conversion: 0.5,
+        residual_value: 0.0,
+
+    };
+
     let _interiorair = predicer::Node {
         name: String::from("interiorair"),
         is_commodity: false,
@@ -84,6 +159,21 @@ fn main() {
         is_inflow: false,
         cost: &time_series_data,
         inflow: &time_series_data,
+        state: interiorair_state,
+    };
+
+    let building_envelope_state = predicer::State {
+
+        in_max: 1.0e10,
+        out_max: 1.0e10,
+        state_loss_proportional: 0.0,
+        state_max: 308.15,
+        state_min: 238.15,
+        initial_state: 273.15,
+        is_temp: true,
+        t_e_conversion: 1.0,
+        residual_value: 0.0,
+
     };
 
     let _building_envelope = predicer::Node {
@@ -95,6 +185,35 @@ fn main() {
         is_inflow: false,
         cost: &time_series_data,
         inflow: &time_series_data,
+        state: building_envelope_state,
+    };
+
+    let building_envelope_state = predicer::State {
+
+        in_max: 1.0e10,
+        out_max: 1.0e10,
+        state_loss_proportional: 0.0,
+        state_max: 308.15,
+        state_min: 238.15,
+        initial_state: 273.15,
+        is_temp: true,
+        t_e_conversion: 1.0,
+        residual_value: 0.0,
+
+    };
+
+    let outside_state = predicer::State {
+
+        in_max: 1.0e10,
+        out_max: 1.0e10,
+        state_loss_proportional: 0.0,
+        state_max: 308.15,
+        state_min: 238.15,
+        initial_state: 268.15,
+        is_temp: true,
+        t_e_conversion: 1000000000.0,
+        residual_value: 0.0,
+
     };
 
     let _outside = predicer::Node {
@@ -105,8 +224,11 @@ fn main() {
         is_market: false,
         is_inflow: true,
         cost: &time_series_data,
-        inflow: &time_series_data,
+        inflow: &outside_ts,
+        state: outside_state,
     };
+
+    let empty_state: predicer::State = Default::default();
 
     let _electricitygrid = predicer::Node {
         name: String::from("electricitygrid"),
@@ -117,6 +239,7 @@ fn main() {
         is_inflow: false,
         cost: &time_series_data,
         inflow: &time_series_data,
+        state: empty_state,
     };
 
     let _node_history_1 = predicer::NodeHistory {
@@ -169,7 +292,9 @@ fn main() {
     let process_vec: Vec<String> = vec![("eff_ops".to_string())];
 
     let _electricheater1 = predicer::Process {
-        name: String::from("electricheater1"),
+        name: String::from("electricheater"),
+        group: String::from("p1"),
+        delay: 0.0,
         is_cf: false,
         is_cf_fix: false,
         is_online: false,
@@ -185,7 +310,6 @@ fn main() {
         max_offline: 0.0,
         initial_state: 0.0,
         topos: &topo_vec,
-        delay: 0.0,
         eff_ops: &process_vec,
     };
 
@@ -248,7 +372,7 @@ fn main() {
     predicer::_predicer(
         false,
         false,
-        false,
+        true,
         false,
         false,
         false,
@@ -262,4 +386,18 @@ fn main() {
         _node_delay,
         predicer_dir,
     );
+
+}
+
+fn main() {
+
+    run_predicer();
+
+
+    /*
+    let (tx, rx) = channel();
+    let mut children = Vec::new();
+    start_sending(tx);
+    main_loop::_task_loop(rx);
+    */
 }

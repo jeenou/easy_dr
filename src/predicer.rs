@@ -5,6 +5,8 @@ use std::path::PathBuf;
 
 pub struct Process<'a> {
     pub name: String,
+    pub group: String,
+    pub delay: f64,
     pub is_cf: bool,
     pub is_cf_fix: bool,
     pub is_online: bool,
@@ -20,7 +22,6 @@ pub struct Process<'a> {
     pub max_offline: f64,
     pub initial_state: f64,
     pub topos: &'a Vec<Topology>,
-    pub delay: f64,
     pub eff_ops: &'a Vec<String>,
 }
 
@@ -40,6 +41,7 @@ pub struct Node<'a> {
     pub is_inflow: bool,
     pub cost: &'a TimeSeriesData,
     pub inflow: &'a TimeSeriesData,
+    pub state: State,
 }
 
 impl<'a> std::fmt::Debug for Node<'a> {
@@ -107,19 +109,22 @@ pub struct Topology {
     pub ramp_down: f64,
 }
 
+#[derive(Default)]
 pub struct State {
-    in_max: f64,
-    out_max: f64,
-    state_loss_proportional: f64,
-    state_max: f64,
-    state_min: f64,
-    initial_state: f64,
-    residual_value: f64,
+    pub in_max: f64,
+    pub out_max: f64,
+    pub state_loss_proportional: f64,
+    pub state_max: f64,
+    pub state_min: f64,
+    pub initial_state: f64,
+    pub is_temp: bool,
+    pub t_e_conversion: f64,
+    pub residual_value: f64,
 }
 
 pub struct TimeSeries {
     pub scenario: String,
-    pub series: Vec<(String, String)>,
+    pub series: Vec<(String, i64)>,
 }
 
 pub struct TimeSeriesData {
@@ -284,46 +289,78 @@ pub fn _predicer(
                 julia_interface::call(&frame, &["Pkg", "instantiate"], &[]);
                 Value::eval_string(&mut frame, "using Predicer");
 
-                //Create processes TÄSSÄ TOPOLOGY ONGELMA
-
                 for (key, value) in &processes {
-                    let p_d1 = JuliaString::new(&mut frame, key).as_value();
-                    let p_d2 = Value::new(&mut frame, value.conversion);
+                    let p_name = JuliaString::new(&mut frame, key).as_value();
+                    let p_conversion = Value::new(&mut frame, value.conversion);
+                    let p_group = JuliaString::new(&mut frame, &value.group).as_value();
+                    let p_delay = Value::new(&mut frame, value.delay);
 
-                    let process = julia_interface::call(
+
+                    let process_result = julia_interface::call(
                         &mut frame,
                         &["Predicer", "create_process"],
-                        &[p_d1, p_d2],
+                        &[p_name, p_conversion, p_delay],
                     )
                     .into_jlrs_result();
 
-                    let mut process_with_topo: Value<'_, '_>;
-
-                    match process {
-                        Ok(process_value) => {
-                            process_with_topo = process_value;
+                    match process_result {
+                        Ok(process) => {
 
                             for topo in value.topos {
-                                let t_d1 = JuliaString::new(&mut frame, &topo.source).as_value();
-                                let t_d2 = JuliaString::new(&mut frame, &topo.sink).as_value();
-                                let t_d3 = Value::new(&mut frame, topo.capacity);
-                                let t_d4 = Value::new(&mut frame, topo.vom_cost);
-                                let t_d5 = Value::new(&mut frame, topo.ramp_up);
-                                let t_d6 = Value::new(&mut frame, topo.ramp_down);
+                                let t_source = JuliaString::new(&mut frame, &topo.source).as_value();
+                                let t_sink = JuliaString::new(&mut frame, &topo.sink).as_value();
+                                let t_capacity = Value::new(&mut frame, topo.capacity);
+                                let t_vom_cost = Value::new(&mut frame, topo.vom_cost);
+                                let t_ramp_up = Value::new(&mut frame, topo.ramp_up);
+                                let t_ramp_down = Value::new(&mut frame, topo.ramp_down);
 
                                 let _create_topology = julia_interface::call(
                                     &mut frame,
                                     &["Predicer", "create_topology"],
-                                    &[t_d1, t_d2, t_d3, t_d4, t_d5, t_d6],
+                                    &[t_source, t_sink, t_capacity, t_vom_cost, t_ramp_up, t_ramp_down],
                                 );
 
-                                //Miten tämä pitäisi tehdä?
+                                match _create_topology {
+                                    Ok(topology) => {
+                                        let _add_topology = julia_interface::call(
+                                            &mut frame, 
+                                            &["Predicer", "add_topology"], 
+                                            &[process, topology]
+                                        );
 
-                                //Tässä pitäisi luoda prosessi ja lisätä topologyt process-muuttujaan kohtaan Process.topos::Vector{Topology}
+                                        match _add_topology {
+                                            Ok(_) => println!("Added topology to process!"),
+                                            Err(error) => println!("Error adding topology to process: {:?}", error),
+                                        }
+                                    }
+                                    Err(error) => println!("Error adding topology to process: {:?}", error),
+                                }
+
                             }
 
-                            //Tässä lisätään prosessi h_processes ordered dictiin
-                            //let _add_to_processes = julia_interface::call(&mut frame, &["Predicer", "add_to_processes"], &[process_with_topo]).into_jlrs_result();
+                            
+
+                            let _add_group_to_processes = julia_interface::call(
+                                &mut frame,
+                                &["Predicer", "add_group_to_process"],
+                                &[process, p_group],
+                            );
+
+                            
+
+                            let _add_to_processes = julia_interface::call(
+                                &mut frame, 
+                                &["Predicer", "add_to_processes"], 
+                                &[process]
+                            ).into_jlrs_result();
+
+                            //muuta tämä yksikkötestiksi
+                            let _topos_test = julia_interface::call(
+                                &mut frame, 
+                                &["Predicer", "topo_test"], 
+                                &[process]
+                            ).into_jlrs_result();
+
                         }
                         Err(error) => println!("Error creating process: {:?}", error),
                     }
@@ -348,30 +385,143 @@ pub fn _predicer(
                     // An extended target provides a target for the result we want to return and a frame for
                     // temporary data.
 
-                    let n_d1 = JuliaString::new(&mut frame, key).as_value();
-                    let n_d2 = Value::new(&mut frame, value.is_commodity);
-                    let n_d3 = Value::new(&mut frame, value.is_market);
+                    let n_name = JuliaString::new(&mut frame, key).as_value();
+                    let n_is_commodity = Value::new(&mut frame, value.is_commodity);
+                    let n_is_market = Value::new(&mut frame, value.is_market);
+                    let n_is_inflow = Value::new(&mut frame, value.is_inflow);
 
-                    let _node = julia_interface::call(
+                    let _create_node = julia_interface::call(
                         &mut frame,
                         &["Predicer", "create_node"],
-                        &[n_d1, n_d2, n_d3],
+                        &[n_name, n_is_commodity, n_is_market, n_is_inflow],
                     )
                     .into_jlrs_result();
 
-                    match _node {
-                        Ok(node_value) => {
+                    match _create_node {
+                        Ok(node) => {
+
+                            //create state
+
+                            if value.is_state {
+
+                                let s_in_max = Value::new(&mut frame, value.state.in_max);
+                                let s_out_max = Value::new(&mut frame, value.state.out_max);
+                                let s_state_loss_proportional = Value::new(&mut frame, value.state.state_loss_proportional);
+                                let s_state_max = Value::new(&mut frame, value.state.state_max);
+                                let s_state_min = Value::new(&mut frame, value.state.state_min);
+                                let s_initial_state = Value::new(&mut frame, value.state.initial_state);
+                                let s_is_temp = Value::new(&mut frame, value.state.is_temp);
+                                let s_t_e_conversion = Value::new(&mut frame, value.state.t_e_conversion);
+                                let s_residual_value = Value::new(&mut frame, value.state.residual_value);
+
+
+                                let _create_state = julia_interface::call(
+                                    &mut frame,
+                                    &["Predicer", "create_state"],
+                                    &[s_in_max, s_out_max, s_state_loss_proportional, s_state_max, s_state_min, s_initial_state, s_is_temp, s_t_e_conversion, s_residual_value],
+                                );
+
+                                //add state to node
+
+                                match _create_state {
+                                    Ok(state) => {
+                                        let _add_state = julia_interface::call(
+                                            &mut frame,
+                                            &["Predicer", "add_state"],
+                                            &[node, state],
+                                        );
+                                    }
+                                    Err(error) => println!("Error creating state: {:?}", error),
+                                }
+
+                                //add inflow
+
+                                if value.is_inflow {
+
+                                    let _create_timeseriesdata = julia_interface::call(
+                                        &mut frame,
+                                        &["Predicer", "create_timeseriesdata"],
+                                        &[],
+                                    );
+
+                                    match _create_timeseriesdata {
+                                        Ok(timeseriesdata) => {
+
+                                            for _time_serie in &value.inflow.ts_data {
+
+                                                let ts_scenario = JuliaString::new(&mut frame, &_time_serie.scenario).as_value();
+        
+                                                let _create_timeseries = julia_interface::call(
+                                                    &mut frame,
+                                                    &["Predicer", "create_timeseries"],
+                                                    &[ts_scenario],
+                                                );
+        
+                                                match _create_timeseries {
+                                                    Ok(timeserie) => {
+        
+                                                        for time_point in &_time_serie.series {
+        
+                                                            let j_timestamp = JuliaString::new(&mut frame, &time_point.0).as_value();
+                                                            let j_inflow = Value::new(&mut frame, time_point.1);
+        
+                                                            let _make_time_point = julia_interface::call(
+                                                                &mut frame,
+                                                                &["Predicer", "make_time_point"],
+                                                                &[j_timestamp, j_inflow],
+                                                            );
+        
+                                                            match _make_time_point {
+                                                                Ok(time_point) => {
+                                                                    let _push_time_point = julia_interface::call(
+                                                                        &mut frame,
+                                                                        &["Predicer", "push_time_point"],
+                                                                        &[timeserie, time_point],
+                                                                    );
+                                                                }
+                                                                Err(error) => println!("Error creating time point: {:?}", error),
+                                                            } 
+                                                            
+                                                        }
+
+                                                        let _push_timeseries = julia_interface::call(
+                                                            &mut frame,
+                                                            &["Predicer", "push_timeseries"],
+                                                            &[timeseriesdata, timeserie],
+                                                        );
+                                                        
+                                                    }
+                                                    Err(error) => println!("Error creating timeseries: {:?}", error),
+                                                }       
+                                            }
+
+                                            //add timeseries to node
+
+                                            let _add_inflow = julia_interface::call(
+                                                &mut frame,
+                                                &["Predicer", "add_inflow2"],
+                                                &[node, timeseriesdata],
+                                            );
+
+                                        }
+                                        Err(error) => println!("Error creating timeseriesdata: {:?}", error),
+                                    }
+
+                                }
+
+                            }
+
                             let _add_to_nodes_result = julia_interface::call(
                                 &mut frame,
                                 &["Predicer", "add_to_nodes"],
-                                &[node_value],
+                                &[node],
                             );
                             match _add_to_nodes_result {
                                 Ok(_) => println!("Added to nodes!"),
                                 Err(error) => println!("Error adding node to nodes: {:?}", error),
                             }
                         }
-                        Err(error) => println!("Error adding node to nodes2: {:?}", error),
+                        Err(error) => println!("Error creating node: {:?}", error),
                     }
                 }
 
@@ -718,15 +868,17 @@ pub fn _predicer(
                     j_contains_diffusion,
                 ];
 
-                /*
-
-                InputData ei ole oikein, ei toimi vielä
-
+                
                 let _input_data = julia_interface::call(&mut frame, &["Predicer", "create_inputdata2"], &i_args).into_jlrs_result();
 
                 match _input_data {
                     Ok(id_value) => {
-                        let _generate_model_result = julia_interface::call(&mut frame, &["Predicer", "solve_hertta"], &[id_value]);
+                        let _generate_model_result = julia_interface::call(
+                            &mut frame, 
+                            &["Predicer", "solve_hertta"], 
+                            &[id_value]
+                        );
+
                         match _generate_model_result {
                             Ok(_gm_value) => {
                                 println!("Generated model")},
@@ -735,8 +887,7 @@ pub fn _predicer(
                     }
                     Err(error) => println!("Error generating model: {:?}", error),
                 }
-
-                */
+                
 
                 Ok(())
             })
