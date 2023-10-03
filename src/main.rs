@@ -21,14 +21,14 @@ pub fn run_predicer() {
 
     //Example time series
 
-    let series1: Vec<(String, i64)> = vec![
-        ("Data1".to_string(), 0),
-        ("Data2".to_string(), 0),
+    let series1: Vec<(String, f64)> = vec![
+        ("Data1".to_string(), 0.0),
+        ("Data2".to_string(), 0.0),
     ];
 
-    let series2: Vec<(String, i64)> = vec![
-        ("Data3".to_string(), 0),
-        ("Data4".to_string(), 0),
+    let series2: Vec<(String, f64)> = vec![
+        ("Data3".to_string(), 0.0),
+        ("Data4".to_string(), 0.0),
     ];
 
     let time_series1 = predicer::TimeSeries {
@@ -51,30 +51,30 @@ pub fn run_predicer() {
 
     //Outside temperatures (time series)
 
-    let outside_timeseries_s1: Vec<(String, i64)> = vec![
-        ("2022-04-20T00:00:00+00:00".to_string(), 3),
-        ("2022-04-20T01:00:00+00:00".to_string(), 0),
-        ("2022-04-20T02:00:00+00:00".to_string(), 4),
-        ("2022-04-20T03:00:00+00:00".to_string(), -1),
-        ("2022-04-20T04:00:00+00:00".to_string(), 5),
-        ("2022-04-20T05:00:00+00:00".to_string(), -4),
-        ("2022-04-20T06:00:00+00:00".to_string(), -5),
-        ("2022-04-20T07:00:00+00:00".to_string(), -2),
-        ("2022-04-20T08:00:00+00:00".to_string(), 4),
-        ("2022-04-20T09:00:00+00:00".to_string(), 0),
+    let outside_timeseries_s1: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 3.0),
+        ("2022-04-20T01:00:00+00:00".to_string(), 0.0),
+        ("2022-04-20T02:00:00+00:00".to_string(), 4.0),
+        ("2022-04-20T03:00:00+00:00".to_string(), -1.0),
+        ("2022-04-20T04:00:00+00:00".to_string(), 5.0),
+        ("2022-04-20T05:00:00+00:00".to_string(), -4.0),
+        ("2022-04-20T06:00:00+00:00".to_string(), -5.0),
+        ("2022-04-20T07:00:00+00:00".to_string(), -2.0),
+        ("2022-04-20T08:00:00+00:00".to_string(), 4.0),
+        ("2022-04-20T09:00:00+00:00".to_string(), 0.0),
     ];
 
-    let outside_timeseries_s2: Vec<(String, i64)> = vec![
-        ("2022-04-20T00:00:00+00:00".to_string(), -2),
-        ("2022-04-20T01:00:00+00:00".to_string(), 4),
-        ("2022-04-20T02:00:00+00:00".to_string(), 4),
-        ("2022-04-20T03:00:00+00:00".to_string(), -1),
-        ("2022-04-20T04:00:00+00:00".to_string(), 1),
-        ("2022-04-20T05:00:00+00:00".to_string(), -3),
-        ("2022-04-20T06:00:00+00:00".to_string(), 0),
-        ("2022-04-20T07:00:00+00:00".to_string(), -5),
-        ("2022-04-20T08:00:00+00:00".to_string(), -3),
-        ("2022-04-20T09:00:00+00:00".to_string(), -2),
+    let outside_timeseries_s2: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), -2.0),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4.0),
+        ("2022-04-20T02:00:00+00:00".to_string(), 4.0),
+        ("2022-04-20T03:00:00+00:00".to_string(), -1.0),
+        ("2022-04-20T04:00:00+00:00".to_string(), 1.0),
+        ("2022-04-20T05:00:00+00:00".to_string(), -3.0),
+        ("2022-04-20T06:00:00+00:00".to_string(), 0.0),
+        ("2022-04-20T07:00:00+00:00".to_string(), -5.0),
+        ("2022-04-20T08:00:00+00:00".to_string(), -3.0),
+        ("2022-04-20T09:00:00+00:00".to_string(), -2.0),
     ];
 
     let outside_ts_s1 = predicer::TimeSeries {
@@ -95,30 +95,30 @@ pub fn run_predicer() {
 
     //Market prices (time series)
 
-    let npe_timeseries_s1: Vec<(String, i64)> = vec![
-        ("2022-04-20T00:00:00+00:00".to_string(), 18),
-        ("2022-04-20T01:00:00+00:00".to_string(), 5),
-        ("2022-04-20T02:00:00+00:00".to_string(), 8),
-        ("2022-04-20T03:00:00+00:00".to_string(), 6),
-        ("2022-04-20T04:00:00+00:00".to_string(), 19),
-        ("2022-04-20T05:00:00+00:00".to_string(), 24),
-        ("2022-04-20T06:00:00+00:00".to_string(), 24),
-        ("2022-04-20T07:00:00+00:00".to_string(), 21),
-        ("2022-04-20T08:00:00+00:00".to_string(), 20),
-        ("2022-04-20T09:00:00+00:00".to_string(), 10),
+    let npe_timeseries_s1: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 18.0),
+        ("2022-04-20T01:00:00+00:00".to_string(), 5.0),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8.0),
+        ("2022-04-20T03:00:00+00:00".to_string(), 6.0),
+        ("2022-04-20T04:00:00+00:00".to_string(), 19.0),
+        ("2022-04-20T05:00:00+00:00".to_string(), 24.0),
+        ("2022-04-20T06:00:00+00:00".to_string(), 24.0),
+        ("2022-04-20T07:00:00+00:00".to_string(), 21.0),
+        ("2022-04-20T08:00:00+00:00".to_string(), 20.0),
+        ("2022-04-20T09:00:00+00:00".to_string(), 10.0),
     ];
 
-    let npe_timeseries_s2: Vec<(String, i64)> = vec![
-        ("2022-04-20T00:00:00+00:00".to_string(), 8),
-        ("2022-04-20T01:00:00+00:00".to_string(), 4),
-        ("2022-04-20T02:00:00+00:00".to_string(), 8),
-        ("2022-04-20T03:00:00+00:00".to_string(), 2),
-        ("2022-04-20T04:00:00+00:00".to_string(), 24),
-        ("2022-04-20T05:00:00+00:00".to_string(), 2),
-        ("2022-04-20T06:00:00+00:00".to_string(), 10),
-        ("2022-04-20T07:00:00+00:00".to_string(), 16),
-        ("2022-04-20T08:00:00+00:00".to_string(), 11),
-        ("2022-04-20T09:00:00+00:00".to_string(), 12),
+    let npe_timeseries_s2: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 8.0),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4.0),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8.0),
+        ("2022-04-20T03:00:00+00:00".to_string(), 2.0),
+        ("2022-04-20T04:00:00+00:00".to_string(), 24.0),
+        ("2022-04-20T05:00:00+00:00".to_string(), 2.0),
+        ("2022-04-20T06:00:00+00:00".to_string(), 10.0),
+        ("2022-04-20T07:00:00+00:00".to_string(), 16.0),
+        ("2022-04-20T08:00:00+00:00".to_string(), 11.0),
+        ("2022-04-20T09:00:00+00:00".to_string(), 12.0),
     ];
 
     let npe_ts_s1 = predicer::TimeSeries {
@@ -139,46 +139,87 @@ pub fn run_predicer() {
 
     //Gen constraints time series
 
-    let gc_timeseries_s1: Vec<(String, i64)> = vec![
-        ("2022-04-20T00:00:00+00:00".to_string(), 18),
-        ("2022-04-20T01:00:00+00:00".to_string(), 5),
-        ("2022-04-20T02:00:00+00:00".to_string(), 8),
-        ("2022-04-20T03:00:00+00:00".to_string(), 6),
-        ("2022-04-20T04:00:00+00:00".to_string(), 19),
-        ("2022-04-20T05:00:00+00:00".to_string(), 24),
-        ("2022-04-20T06:00:00+00:00".to_string(), 24),
-        ("2022-04-20T07:00:00+00:00".to_string(), 21),
-        ("2022-04-20T08:00:00+00:00".to_string(), 20),
-        ("2022-04-20T09:00:00+00:00".to_string(), 10),
+    let c_interiorair_up_s1: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T01:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T02:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T03:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T04:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T05:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T06:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T07:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T08:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T09:00:00+00:00".to_string(), 298.15),
     ];
 
-    let gc_timeseries_s2: Vec<(String, i64)> = vec![
-        ("2022-04-20T00:00:00+00:00".to_string(), 8),
-        ("2022-04-20T01:00:00+00:00".to_string(), 4),
-        ("2022-04-20T02:00:00+00:00".to_string(), 8),
-        ("2022-04-20T03:00:00+00:00".to_string(), 2),
-        ("2022-04-20T04:00:00+00:00".to_string(), 24),
-        ("2022-04-20T05:00:00+00:00".to_string(), 2),
-        ("2022-04-20T06:00:00+00:00".to_string(), 10),
-        ("2022-04-20T07:00:00+00:00".to_string(), 16),
-        ("2022-04-20T08:00:00+00:00".to_string(), 11),
-        ("2022-04-20T09:00:00+00:00".to_string(), 12),
+    let c_interiorair_up_s2: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T01:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T02:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T03:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T04:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T05:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T06:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T07:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T08:00:00+00:00".to_string(), 298.15),
+        ("2022-04-20T09:00:00+00:00".to_string(), 298.15),
     ];
 
-    let gc_ts_s1 = predicer::TimeSeries {
+    let c_interiorair_down_s1: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T01:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T02:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T03:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T04:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T05:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T06:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T07:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T08:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T09:00:00+00:00".to_string(), 292.15),
+    ];
+
+    let c_interiorair_down_s2: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T01:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T02:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T03:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T04:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T05:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T06:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T07:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T08:00:00+00:00".to_string(), 292.15),
+        ("2022-04-20T09:00:00+00:00".to_string(), 292.15),
+    ];
+
+    let interiorair_up_s1 = predicer::TimeSeries {
         scenario: "s1".to_string(),
-        series: gc_timeseries_s1,
+        series: c_interiorair_up_s1, 
     };
 
-    let gc_ts_s2 = predicer::TimeSeries {
+    let interiorair_up_s2 = predicer::TimeSeries {
         scenario: "s2".to_string(),
-        series: gc_timeseries_s2,
+        series: c_interiorair_up_s2,
     };
 
-    let gc_ts_vec: Vec<predicer::TimeSeries> = vec![gc_ts_s1, gc_ts_s2];
+    let interiorair_down_s1 = predicer::TimeSeries {
+        scenario: "s1".to_string(),
+        series: c_interiorair_down_s1, 
+    };
 
-    let gc_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
-        ts_data: gc_ts_vec,
+    let interiorair_down_s2 = predicer::TimeSeries {
+        scenario: "s2".to_string(),
+        series: c_interiorair_down_s2,
+    };
+
+    let gc_interiorair_up_vec: Vec<predicer::TimeSeries> = vec![interiorair_up_s1, interiorair_up_s2];
+    let gc_interiorair_down_vec: Vec<predicer::TimeSeries> = vec![interiorair_down_s1, interiorair_down_s2];
+
+    let interiorair_up_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: gc_interiorair_up_vec,
+    };
+
+    let interiorair_down_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: gc_interiorair_down_vec,
     };
 
     //Creating node_diffusion
@@ -361,8 +402,6 @@ pub fn run_predicer() {
 
     //Creating process
 
-    //Mitä eff_ops sisältää?
-
     let process_vec: Vec<String> = vec![("eff_ops".to_string())];
 
     let _electricheater1 = predicer::Process {
@@ -417,12 +456,6 @@ pub fn run_predicer() {
         entity: String::from("electricheater"),
     };
 
-    /*Key: c_interiorair_up,
-        Value: GenConstraint("c_interiorair_up", "st", true, 1000.0,
-        ConFactor[ConFactor("state", ("interiorair", ""),
-        Predicer.TimeSeriesData(TimeSeries[TimeSeries("s1", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)]),
-    TimeSeries("s2", Tuple{AbstractString, Number}[("2022-04-20T00:00:00+00:00", 298.15), ("2022-04-20T01:00:00+00:00", 298.15), ("2022-04-20T02:00:00+00:00", 298.15), ("2022-04-20T03:00:00+00:00", 298.15), ("2022-04-20T04:00:00+00:00", 298.15), ("2022-04-20T05:00:00+00:00", 298.15), ("2022-04-20T06:00:00+00:00", 298.15), ("2022-04-20T07:00:00+00:00", 298.15), ("2022-04-20T08:00:00+00:00", 298.15), ("2022-04-20T09:00:00+00:00", 298.15)])]))], Predicer.TimeSeriesData(TimeSeries[])) */
-
     _groups.insert(&_p1.name, &_p1);
 
     let _confactor = predicer::ConFactor {
@@ -438,11 +471,21 @@ pub fn run_predicer() {
         gc_type: String::from("st"),
         is_setpoint: true,
         penalty: 1000.0,
-        factors: genconstraint_vec,
-        constant: &time_series_data,
+        factors: &genconstraint_vec,
+        constant: &interiorair_up_ts,
+    };
+
+    let _c_interiorair_down = predicer::GenConstraint {
+        name: String::from("c_interiorair_up"),
+        gc_type: String::from("st"),
+        is_setpoint: true,
+        penalty: 1000.0,
+        factors: &genconstraint_vec,
+        constant: &interiorair_down_ts,
     };
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
+    _genconstraints.insert(&_c_interiorair_down.name, &_c_interiorair_down);
 
     predicer::_predicer(
         false,
