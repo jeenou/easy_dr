@@ -19,27 +19,37 @@ pub fn run_predicer() {
         .get(1)
         .expect("first argument should be path to Predicer");
 
-    //Create timeseries
-
-    /*
-    TimeSeries(
-"s1", Tuple{AbstractString, Number}[
-("2022-04-20T00:00:00+00:00", 3), 
-("2022-04-20T01:00:00+00:00", 0), 
-("2022-04-20T02:00:00+00:00", 4), 
-("2022-04-20T03:00:00+00:00", -1),
-("2022-04-20T04:00:00+00:00", 5), 
-("2022-04-20T05:00:00+00:00", -4), 
-("2022-04-20T06:00:00+00:00", -5), 
-("2022-04-20T07:00:00+00:00", -2), 
-("2022-04-20T08:00:00+00:00", 4), 
-("2022-04-20T09:00:00+00:00", 0)])
-     */
+    //Example time series
 
     let series1: Vec<(String, i64)> = vec![
         ("Data1".to_string(), 0),
         ("Data2".to_string(), 0),
     ];
+
+    let series2: Vec<(String, i64)> = vec![
+        ("Data3".to_string(), 0),
+        ("Data4".to_string(), 0),
+    ];
+
+    let time_series1 = predicer::TimeSeries {
+        scenario: "Scenario1".to_string(),
+        series: series1,
+    };
+
+    let time_series2 = predicer::TimeSeries {
+        scenario: "Scenario2".to_string(),
+        series: series2,
+    };
+
+    // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
+    let time_series_data_vec: Vec<predicer::TimeSeries> = vec![time_series1, time_series2];
+
+    // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
+    let time_series_data: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: time_series_data_vec,
+    };
+
+    //Outside temperatures (time series)
 
     let outside_timeseries_s1: Vec<(String, i64)> = vec![
         ("2022-04-20T00:00:00+00:00".to_string(), 3),
@@ -77,34 +87,98 @@ pub fn run_predicer() {
         series: outside_timeseries_s2,
     };
 
-    let series2: Vec<(String, i64)> = vec![
-        ("Data3".to_string(), 0),
-        ("Data4".to_string(), 0),
-    ];
-
-    let time_series1 = predicer::TimeSeries {
-        scenario: "Scenario1".to_string(),
-        series: series1,
-    };
-
-    let time_series2 = predicer::TimeSeries {
-        scenario: "Scenario2".to_string(),
-        series: series2,
-    };
-
-
-    // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
-    let time_series_data_vec: Vec<predicer::TimeSeries> = vec![time_series1, time_series2];
-
-    // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
-    let time_series_data: predicer::TimeSeriesData = predicer::TimeSeriesData {
-        ts_data: time_series_data_vec,
-    };
-
     let outside_ts_vec: Vec<predicer::TimeSeries> = vec![outside_ts_s1, outside_ts_s2];
 
     let outside_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
         ts_data: outside_ts_vec,
+    };
+
+    //Market prices (time series)
+
+    let npe_timeseries_s1: Vec<(String, i64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 18),
+        ("2022-04-20T01:00:00+00:00".to_string(), 5),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8),
+        ("2022-04-20T03:00:00+00:00".to_string(), 6),
+        ("2022-04-20T04:00:00+00:00".to_string(), 19),
+        ("2022-04-20T05:00:00+00:00".to_string(), 24),
+        ("2022-04-20T06:00:00+00:00".to_string(), 24),
+        ("2022-04-20T07:00:00+00:00".to_string(), 21),
+        ("2022-04-20T08:00:00+00:00".to_string(), 20),
+        ("2022-04-20T09:00:00+00:00".to_string(), 10),
+    ];
+
+    let npe_timeseries_s2: Vec<(String, i64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 8),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8),
+        ("2022-04-20T03:00:00+00:00".to_string(), 2),
+        ("2022-04-20T04:00:00+00:00".to_string(), 24),
+        ("2022-04-20T05:00:00+00:00".to_string(), 2),
+        ("2022-04-20T06:00:00+00:00".to_string(), 10),
+        ("2022-04-20T07:00:00+00:00".to_string(), 16),
+        ("2022-04-20T08:00:00+00:00".to_string(), 11),
+        ("2022-04-20T09:00:00+00:00".to_string(), 12),
+    ];
+
+    let npe_ts_s1 = predicer::TimeSeries {
+        scenario: "s1".to_string(),
+        series: npe_timeseries_s1,
+    };
+
+    let npe_ts_s2 = predicer::TimeSeries {
+        scenario: "s2".to_string(),
+        series: npe_timeseries_s2,
+    };
+
+    let npe_ts_vec: Vec<predicer::TimeSeries> = vec![npe_ts_s1, npe_ts_s2];
+
+    let npe_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: npe_ts_vec,
+    };
+
+    //Gen constraints time series
+
+    let gc_timeseries_s1: Vec<(String, i64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 18),
+        ("2022-04-20T01:00:00+00:00".to_string(), 5),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8),
+        ("2022-04-20T03:00:00+00:00".to_string(), 6),
+        ("2022-04-20T04:00:00+00:00".to_string(), 19),
+        ("2022-04-20T05:00:00+00:00".to_string(), 24),
+        ("2022-04-20T06:00:00+00:00".to_string(), 24),
+        ("2022-04-20T07:00:00+00:00".to_string(), 21),
+        ("2022-04-20T08:00:00+00:00".to_string(), 20),
+        ("2022-04-20T09:00:00+00:00".to_string(), 10),
+    ];
+
+    let gc_timeseries_s2: Vec<(String, i64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 8),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8),
+        ("2022-04-20T03:00:00+00:00".to_string(), 2),
+        ("2022-04-20T04:00:00+00:00".to_string(), 24),
+        ("2022-04-20T05:00:00+00:00".to_string(), 2),
+        ("2022-04-20T06:00:00+00:00".to_string(), 10),
+        ("2022-04-20T07:00:00+00:00".to_string(), 16),
+        ("2022-04-20T08:00:00+00:00".to_string(), 11),
+        ("2022-04-20T09:00:00+00:00".to_string(), 12),
+    ];
+
+    let gc_ts_s1 = predicer::TimeSeries {
+        scenario: "s1".to_string(),
+        series: gc_timeseries_s1,
+    };
+
+    let gc_ts_s2 = predicer::TimeSeries {
+        scenario: "s2".to_string(),
+        series: gc_timeseries_s2,
+    };
+
+    let gc_ts_vec: Vec<predicer::TimeSeries> = vec![gc_ts_s1, gc_ts_s2];
+
+    let gc_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: gc_ts_vec,
     };
 
     //Creating node_diffusion
@@ -332,6 +406,7 @@ pub fn run_predicer() {
         min_bid: 0.0,
         max_bid: 0.0,
         fee: 0.0,
+        prices: &npe_ts,
     };
 
     _markets.insert(&_npe.name, &_npe);
