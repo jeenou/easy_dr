@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::env;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::Sender;
 mod predicer;
 use hertta::julia_interface;
-use hertta::utilities;
 use hertta::main_loop;
 
 pub fn start_sending(tx: Sender<main_loop::_Task>) {
@@ -135,6 +134,94 @@ pub fn run_predicer() {
 
     let npe_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
         ts_data: npe_ts_vec,
+    };
+
+    //Market up prices (time series)
+
+    let npe_up_prices_s1: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 19.8),
+        ("2022-04-20T01:00:00+00:00".to_string(), 5.5),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8.8),
+        ("2022-04-20T03:00:00+00:00".to_string(), 6.6),
+        ("2022-04-20T04:00:00+00:00".to_string(), 20.9),
+        ("2022-04-20T05:00:00+00:00".to_string(), 26.4),
+        ("2022-04-20T06:00:00+00:00".to_string(), 26.4),
+        ("2022-04-20T07:00:00+00:00".to_string(), 23.1),
+        ("2022-04-20T08:00:00+00:00".to_string(), 22.0),
+        ("2022-04-20T09:00:00+00:00".to_string(), 11.0),
+    ];
+
+    let npe_up_prices_s2: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 8.8),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4.4),
+        ("2022-04-20T02:00:00+00:00".to_string(), 8.8),
+        ("2022-04-20T03:00:00+00:00".to_string(), 2.2),
+        ("2022-04-20T04:00:00+00:00".to_string(), 26.4),
+        ("2022-04-20T05:00:00+00:00".to_string(), 2.2),
+        ("2022-04-20T06:00:00+00:00".to_string(), 11.0),
+        ("2022-04-20T07:00:00+00:00".to_string(), 17.6),
+        ("2022-04-20T08:00:00+00:00".to_string(), 12.1),
+        ("2022-04-20T09:00:00+00:00".to_string(), 13.2),
+    ];
+
+    let npe_up_s1 = predicer::TimeSeries {
+        scenario: "s1".to_string(),
+        series: npe_up_prices_s1,
+    };
+
+    let npe_up_s2 = predicer::TimeSeries {
+        scenario: "s2".to_string(),
+        series: npe_up_prices_s2,
+    };
+
+    let npe_up_vec: Vec<predicer::TimeSeries> = vec![npe_up_s1, npe_up_s2];
+
+    let npe_up_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: npe_up_vec,
+    };
+
+    //Market down prices (time series)
+
+    let npe_down_prices_s1: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 16.2),
+        ("2022-04-20T01:00:00+00:00".to_string(), 4.5),
+        ("2022-04-20T02:00:00+00:00".to_string(), 7.2),
+        ("2022-04-20T03:00:00+00:00".to_string(), 5.4),
+        ("2022-04-20T04:00:00+00:00".to_string(), 17.1),
+        ("2022-04-20T05:00:00+00:00".to_string(), 21.6),
+        ("2022-04-20T06:00:00+00:00".to_string(), 21.6),
+        ("2022-04-20T07:00:00+00:00".to_string(), 18.9),
+        ("2022-04-20T08:00:00+00:00".to_string(), 18.0),
+        ("2022-04-20T09:00:00+00:00".to_string(), 9.0),
+    ];
+
+    let npe_down_prices_s2: Vec<(String, f64)> = vec![
+        ("2022-04-20T00:00:00+00:00".to_string(), 7.2),
+        ("2022-04-20T01:00:00+00:00".to_string(), 3.6),
+        ("2022-04-20T02:00:00+00:00".to_string(), 7.2),
+        ("2022-04-20T03:00:00+00:00".to_string(), 1.8),
+        ("2022-04-20T04:00:00+00:00".to_string(), 21.6),
+        ("2022-04-20T05:00:00+00:00".to_string(), 1.8),
+        ("2022-04-20T06:00:00+00:00".to_string(), 9.0),
+        ("2022-04-20T07:00:00+00:00".to_string(), 14.4),
+        ("2022-04-20T08:00:00+00:00".to_string(), 9.9),
+        ("2022-04-20T09:00:00+00:00".to_string(), 10.8),
+    ];
+
+    let npe_down_s1 = predicer::TimeSeries {
+        scenario: "s1".to_string(),
+        series: npe_down_prices_s1,
+    };
+
+    let npe_down_s2 = predicer::TimeSeries {
+        scenario: "s2".to_string(),
+        series: npe_down_prices_s2,
+    };
+
+    let npe_down_vec: Vec<predicer::TimeSeries> = vec![npe_down_s1, npe_down_s2];
+
+    let npe_down_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+        ts_data: npe_down_vec,
     };
 
     //Gen constraints time series
@@ -291,19 +378,8 @@ pub fn run_predicer() {
 
     };
 
-    let _building_envelope = predicer::Node {
-        name: String::from("buildingenvelope"),
-        is_commodity: false,
-        is_state: true,
-        is_res: false,
-        is_market: false,
-        is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
-        state: building_envelope_state,
-    };
 
-    let building_envelope_state = predicer::State {
+    let _building_envelope_state = predicer::State {
 
         in_max: 1.0e10,
         out_max: 1.0e10,
@@ -315,6 +391,18 @@ pub fn run_predicer() {
         t_e_conversion: 1.0,
         residual_value: 0.0,
 
+    };
+
+    let _building_envelope = predicer::Node {
+        name: String::from("buildingenvelope"),
+        is_commodity: false,
+        is_state: true,
+        is_res: false,
+        is_market: false,
+        is_inflow: false,
+        cost: &time_series_data,
+        inflow: &time_series_data,
+        state: building_envelope_state,
     };
 
     let outside_state = predicer::State {
@@ -445,7 +533,9 @@ pub fn run_predicer() {
         min_bid: 0.0,
         max_bid: 0.0,
         fee: 0.0,
-        prices: &npe_ts,
+        price: &npe_ts,
+        up_price: &npe_up_ts,
+        down_price: &npe_down_ts,
     };
 
     _markets.insert(&_npe.name, &_npe);
@@ -458,30 +548,38 @@ pub fn run_predicer() {
 
     _groups.insert(&_p1.name, &_p1);
 
-    let _confactor = predicer::ConFactor {
-        var_type: String::from(""),
-        flow: (String::from(""), String::from("")),
-        data: &time_series_data,
+    let interiorair_up_cf = predicer::ConFactor {
+        var_type: String::from("state"),
+        flow: (String::from("interiorair"), String::from("")),
+        data: &interiorair_up_ts,
     };
 
-    let genconstraint_vec: Vec<predicer::ConFactor> = vec![_confactor];
+    let interiorair_up_cf_vec: Vec<predicer::ConFactor> = vec![interiorair_up_cf];
+
+    let interiorair_down_cf = predicer::ConFactor {
+        var_type: String::from("state"),
+        flow: (String::from("interiorair"), String::from("")),
+        data: &interiorair_down_ts,
+    };
+
+    let interiorair_down_cf_vec: Vec<predicer::ConFactor> = vec![interiorair_down_cf];
 
     let _c_interiorair_up = predicer::GenConstraint {
         name: String::from("c_interiorair_up"),
         gc_type: String::from("st"),
         is_setpoint: true,
         penalty: 1000.0,
-        factors: &genconstraint_vec,
-        constant: &interiorair_up_ts,
+        factors: &interiorair_up_cf_vec,
+        constant: &time_series_data,
     };
 
     let _c_interiorair_down = predicer::GenConstraint {
-        name: String::from("c_interiorair_up"),
+        name: String::from("c_interiorair_down"),
         gc_type: String::from("st"),
         is_setpoint: true,
         penalty: 1000.0,
-        factors: &genconstraint_vec,
-        constant: &interiorair_down_ts,
+        factors: &interiorair_down_cf_vec,
+        constant: &time_series_data,
     };
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
