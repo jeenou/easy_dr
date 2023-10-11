@@ -1157,7 +1157,7 @@ pub fn _predicer(
                 ];
 
                 
-                let _input_data = julia_interface::call(&mut frame, &["Predicer", "create_inputdata2"], &i_args).into_jlrs_result();
+                let _input_data = julia_interface::call(&mut frame, &["Predicer", "create_inputdata"], &i_args).into_jlrs_result();
 
                 match _input_data {
                     Ok(id_value) => {
