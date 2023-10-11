@@ -330,18 +330,11 @@ pub fn _predicer(
                                             &["Predicer", "add_topology"], 
                                             &[process, topology]
                                         );
-
-                                        match _add_topology {
-                                            Ok(_) => println!("Added topology to process!"),
-                                            Err(error) => println!("Error adding topology to process: {:?}", error),
-                                        }
                                     }
                                     Err(error) => println!("Error adding topology to process: {:?}", error),
                                 }
 
-                            }
-
-                            
+                            }   
 
                             let _add_group_to_processes = julia_interface::call(
                                 &mut frame,
@@ -349,18 +342,9 @@ pub fn _predicer(
                                 &[process, p_group],
                             );
 
-                            
-
                             let _add_to_processes = julia_interface::call(
                                 &mut frame, 
                                 &["Predicer", "add_to_processes"], 
-                                &[process]
-                            ).into_jlrs_result();
-
-                            //muuta tämä yksikkötestiksi
-                            let _topos_test = julia_interface::call(
-                                &mut frame, 
-                                &["Predicer", "topo_test"], 
                                 &[process]
                             ).into_jlrs_result();
 
@@ -385,8 +369,6 @@ pub fn _predicer(
                 //Create nodes
 
                 for (key, value) in &nodes {
-                    // An extended target provides a target for the result we want to return and a frame for
-                    // temporary data.
 
                     let n_name = JuliaString::new(&mut frame, key).as_value();
                     let n_is_commodity = Value::new(&mut frame, value.is_commodity);
@@ -503,7 +485,7 @@ pub fn _predicer(
 
                                             let _add_inflow = julia_interface::call(
                                                 &mut frame,
-                                                &["Predicer", "add_inflow2"],
+                                                &["Predicer", "add_inflow_to_node"],
                                                 &[node, timeseriesdata],
                                             );
 
@@ -520,10 +502,6 @@ pub fn _predicer(
                                 &["Predicer", "add_to_nodes"],
                                 &[node],
                             );
-                            match _add_to_nodes_result {
-                                Ok(_) => println!("Added to nodes!"),
-                                Err(error) => println!("Error adding node to nodes: {:?}", error),
-                            }
                         }
                         Err(error) => println!("Error creating node: {:?}", error),
                     }
@@ -558,11 +536,6 @@ pub fn _predicer(
                         &[nd_d1, nd_d2, nd_d3],
                     )
                     .into_jlrs_result();
-
-                    match _node_diffusion_tuple {
-                        Ok(_) => println!("Added node diffusion tuple!"),
-                        Err(error) => println!("Error adding node diffusion tuple: {:?}", error),
-                    }
                 }
 
                 let nd_args = [];
@@ -599,11 +572,6 @@ pub fn _predicer(
                         &[nde_d1, nde_d2, nde_d3, nde_d4, nde_d5],
                     )
                     .into_jlrs_result();
-
-                    match _node_delay_tuple {
-                        Ok(_) => println!("Added node delay tuple!"),
-                        Err(error) => println!("Error adding node delay tuple: {:?}", error),
-                    }
                 }
 
                 let nde_args = [];
@@ -636,7 +604,6 @@ pub fn _predicer(
                     Ok(nodehistory_value) => {
                         //list[4]
                         list.push(nodehistory_value);
-                        println!("Added node histories")
                     }
                     Err(error) => println!("Error adding node histories: {:?}", error),
                 }
@@ -888,12 +855,6 @@ pub fn _predicer(
                                 &["Predicer", "add_to_markets"],
                                 &[market],
                             );
-                            match _add_to_markets_result {
-                                Ok(_) => println!("Added to markets!"),
-                                Err(error) => {
-                                    println!("Error adding market to markets: {:?}", error)
-                                }
-                            }
                         }
                         Err(error) => println!("Error adding market to markets2: {:?}", error),
                     }
@@ -935,10 +896,6 @@ pub fn _predicer(
                                 &["Predicer", "add_to_groups"],
                                 &[group_value],
                             );
-                            match _add_to_groups_result {
-                                Ok(_) => println!("Added to groups!"),
-                                Err(error) => println!("Error adding group to groups: {:?}", error),
-                            }
                         }
                         Err(error) => println!("Error adding group to groups2: {:?}", error),
                     }
@@ -1076,12 +1033,6 @@ pub fn _predicer(
                                                             &["Predicer", "add_ts_to_confactor"],
                                                             &[confactor_value, timeseriesdata],
                                                         );
-                                                        match _add_ts_to_confactor {
-                                                            Ok(_confactor) => {
-                                                                println!("Added timeseries to confactor")
-                                                            },
-                                                            Err(error) => println!("Error adding timeseries to confactor: {:?}", error),
-                                                        }
 
                                                         //add confactor to gen constraints
 
@@ -1109,16 +1060,9 @@ pub fn _predicer(
                                 &["Predicer", "add_to_genconstraints"],
                                 &[gc_value],
                             );
-                            match _add_to_genconstraints_result {
-                                Ok(_) => println!("Added to genconstraints!"),
-                                Err(error) => println!(
-                                    "Error adding genconstraint to genconstraints: {:?}",
-                                    error
-                                ),
-                            }
                         }
                         Err(error) => println!(
-                            "Error adding gen constraint to gen_constraints2: {:?}",
+                            "Error adding gen constraint to gen_constraints: {:?}",
                             error
                         ),
                     }
@@ -1176,7 +1120,6 @@ pub fn _predicer(
                     Ok(inflowblocks_value) => {
                         //list[8]
                         list.push(inflowblocks_value);
-                        println!("Added inflowblocks")
                     }
                     Err(error) => println!("Error adding inflowblocks: {:?}", error),
                 }
@@ -1223,14 +1166,8 @@ pub fn _predicer(
                             &["Predicer", "solve_hertta"], 
                             &[id_value]
                         );
-
-                        match _generate_model_result {
-                            Ok(_gm_value) => {
-                                println!("Generated model")},
-                            Err(error) => println!("Error generating mode1l: {:?}", error),
-                        }
                     }
-                    Err(error) => println!("Error generating model2: {:?}", error),
+                    Err(error) => println!("Error solving model: {:?}", error),
                 }
                 
 
