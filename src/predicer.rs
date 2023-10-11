@@ -1227,10 +1227,10 @@ pub fn _predicer(
                         match _generate_model_result {
                             Ok(_gm_value) => {
                                 println!("Generated model")},
-                            Err(error) => println!("Error generating model: {:?}", error),
+                            Err(error) => println!("Error generating mode1l: {:?}", error),
                         }
                     }
-                    Err(error) => println!("Error generating model: {:?}", error),
+                    Err(error) => println!("Error generating model2: {:?}", error),
                 }
                 
 
