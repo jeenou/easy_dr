@@ -2,7 +2,6 @@ use jlrs::data::managed::function::Function;
 use jlrs::data::managed::union_all::UnionAll;
 use jlrs::data::managed::value::ValueData;
 use jlrs::data::managed::value::ValueResult;
-use jlrs::memory::target::frame::GcFrame;
 use jlrs::memory::target::ExtendedTarget;
 use jlrs::prelude::*;
 
@@ -46,10 +45,10 @@ pub fn activate_julia_project<'target, 'data, T: Target<'target>>(
     project_dir: Value<'_, 'data>,
 ) -> Result<(), String> {
     unsafe {
-        Value::eval_string(&target, "using Pkg");
+        Value::eval_string(&target, "using Pkg").unwrap();
     }
-    call(&target, &["Pkg", "activate"], &[project_dir]);
-    call(&target, &["Pkg", "instantiate"], &[]);
+    call(&target, &["Pkg", "activate"], &[project_dir]).unwrap();
+    call(&target, &["Pkg", "instantiate"], &[]).unwrap();
     Ok(())
 }
 
@@ -119,7 +118,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use jlrs::prelude::*;
 
     #[test]
     fn test_all_things_requiring_julia_instance() -> Result<(), String> {
@@ -153,7 +151,7 @@ mod tests {
         let dict_data = vec![("a".to_string(), 2.3)];
         julia.scope(|mut gc_frame| {
             let project_dir = JuliaString::new(&mut gc_frame, "Predicer").as_value();
-            activate_julia_project(&mut gc_frame, project_dir);
+            activate_julia_project(&mut gc_frame, project_dir).unwrap();
             let dict = to_ordered_dict(gc_frame.as_extended_target(), &dict_data).unwrap();
             let length = call(&mut gc_frame, &["length"], &[dict])
                 .into_jlrs_result()
@@ -170,7 +168,7 @@ mod tests {
                 .unwrap();
             assert_eq!(value, 2.3);
             Ok(())
-        });
+        }).unwrap();
         Ok(())
     }
 }

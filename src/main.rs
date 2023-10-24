@@ -11,6 +11,24 @@ pub fn start_sending(tx: Sender<main_loop::_Task>) {
     tx.send(main_loop::_Task::StartProcess).unwrap();
 }
 
+pub fn create_time_point(string: String, number: f64) -> (String, f64) {
+
+    return (string, number)
+
+}
+
+pub fn add_time_point(ts_vec: &mut Vec<(String, f64)>, time_point: (String, f64)) {
+
+    ts_vec.push(time_point);
+
+}
+
+pub fn add_time_serie(ts_data_vec: &mut Vec<predicer::TimeSeries>, time_series: predicer::TimeSeries) {
+
+    ts_data_vec.push(time_series);
+
+}
+
 pub fn run_predicer() {
 
     let args: Vec<String> = env::args().collect();
@@ -20,15 +38,16 @@ pub fn run_predicer() {
 
     //Example time series
 
-    let series1: Vec<(String, f64)> = vec![
-        ("Data1".to_string(), 0.0),
-        ("Data2".to_string(), 0.0),
-    ];
+    let mut series1: Vec<(String, f64)> = Vec::new();
+    let mut series2: Vec<(String, f64)> = Vec::new();
 
-    let series2: Vec<(String, f64)> = vec![
-        ("Data3".to_string(), 0.0),
-        ("Data4".to_string(), 0.0),
-    ];
+    let timepoint1 = create_time_point("Data1".to_string(), 0.0);
+    let timepoint2 = create_time_point("Data2".to_string(), 0.0);
+
+    add_time_point(&mut series1, timepoint1.clone());
+    add_time_point(&mut series1, timepoint2.clone());
+    add_time_point(&mut series2, timepoint1.clone());
+    add_time_point(&mut series2, timepoint2.clone());
 
     let time_series1 = predicer::TimeSeries {
         scenario: "Scenario1".to_string(),
@@ -41,7 +60,10 @@ pub fn run_predicer() {
     };
 
     // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
-    let time_series_data_vec: Vec<predicer::TimeSeries> = vec![time_series1, time_series2];
+    let mut time_series_data_vec: Vec<predicer::TimeSeries> = Vec::new();
+    add_time_serie(&mut time_series_data_vec, time_series1);
+    add_time_serie(&mut time_series_data_vec, time_series2);
+
 
     // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
     let time_series_data: predicer::TimeSeriesData = predicer::TimeSeriesData {
@@ -49,6 +71,11 @@ pub fn run_predicer() {
     };
 
     //Outside temperatures (time series)
+
+    //let mut outside_timeseries_s1: Vec<(String, f64)> = Vec::new();
+    //let mut outside_timeseries_s2: Vec<(String, f64)> = Vec::new();
+
+    //These outside temperatures come from HASS, we need a function that takes data from HASS and put that timeserie in to a vec
 
     let outside_timeseries_s1: Vec<(String, f64)> = vec![
         ("2022-04-20T00:00:00+00:00".to_string(), 3.0),
@@ -86,7 +113,9 @@ pub fn run_predicer() {
         series: outside_timeseries_s2,
     };
 
-    let outside_ts_vec: Vec<predicer::TimeSeries> = vec![outside_ts_s1, outside_ts_s2];
+    let mut outside_ts_vec: Vec<predicer::TimeSeries> = Vec::new();
+    add_time_serie(&mut outside_ts_vec, outside_ts_s1);
+    add_time_serie(&mut outside_ts_vec, outside_ts_s2);
 
     let outside_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
         ts_data: outside_ts_vec,
@@ -575,7 +604,7 @@ pub fn run_predicer() {
 
     let _c_interiorair_down = predicer::GenConstraint {
         name: String::from("c_interiorair_down"),
-        gc_type: String::from("st"),
+        gc_type: String::from("gt"),
         is_setpoint: true,
         penalty: 1000.0,
         factors: &interiorair_down_cf_vec,
@@ -584,7 +613,8 @@ pub fn run_predicer() {
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
     _genconstraints.insert(&_c_interiorair_down.name, &_c_interiorair_down);
-
+    
+     
     predicer::_predicer(
         false,
         false,
@@ -602,6 +632,7 @@ pub fn run_predicer() {
         _node_delay,
         predicer_dir,
     );
+    
 
 }
 

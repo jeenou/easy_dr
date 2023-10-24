@@ -98,11 +98,6 @@ pub struct NodeDelay {
     pub max_flow: f64,
 }
 
-pub struct Scenario {
-    name: String,
-    probability: f64,
-}
-
 pub struct Topology {
     pub source: String,
     pub sink: String,
@@ -138,12 +133,6 @@ pub struct ConFactor<'a> {
     pub var_type: String,
     pub flow: (String, String),
     pub data: &'a TimeSeriesData,
-}
-
-pub struct InflowBlock {
-    pub name: String,
-    pub node: String,
-    pub data: TimeSeriesData,
 }
 
 pub struct NodeHistory<'a> {
@@ -287,10 +276,10 @@ pub fn _predicer(
         julia
             .scope(|mut frame| {
                 let jl_predicer_dir = JuliaString::new(&mut frame, predicer_dir).as_value();
-                Value::eval_string(&mut frame, "using Pkg");
-                julia_interface::call(&frame, &["Pkg", "activate"], &[jl_predicer_dir]);
-                julia_interface::call(&frame, &["Pkg", "instantiate"], &[]);
-                Value::eval_string(&mut frame, "using Predicer");
+                Value::eval_string(&mut frame, "using Pkg").unwrap();
+                julia_interface::call(&frame, &["Pkg", "activate"], &[jl_predicer_dir]).unwrap();
+                julia_interface::call(&frame, &["Pkg", "instantiate"], &[]).unwrap();
+                Value::eval_string(&mut frame, "using Predicer").unwrap();
 
                 for (key, value) in &processes {
                     let p_name = JuliaString::new(&mut frame, key).as_value();
@@ -522,7 +511,7 @@ pub fn _predicer(
 
                 //Node diffusion
 
-                for (key, value) in &node_diffusion {
+                for (_key, value) in &node_diffusion {
                     // An extended target provides a target for the result we want to return and a frame for
                     // temporary data.
 
@@ -556,7 +545,7 @@ pub fn _predicer(
 
                 //node_delay
 
-                for (key, value) in &node_delay {
+                for (_key, value) in &node_delay {
                     // An extended target provides a target for the result we want to return and a frame for
                     // temporary data.
 
@@ -1166,9 +1155,35 @@ pub fn _predicer(
                             &["Predicer", "solve_hertta"], 
                             &[id_value]
                         );
+
+
+                        let _p_type = JuliaString::new(&mut frame, String::from("v_flow")).as_value();
+                        let _name = JuliaString::new(&mut frame, String::from("electricheater")).as_value();
+                        let _scenario = JuliaString::new(&mut frame, String::from("s1")).as_value();
+
+
+                        match _generate_model_result {
+                            Ok(model) => {
+                                let _get_process_data = julia_interface::call(
+                                    &mut frame, 
+                                    &["Predicer", "convert_df_to_vector"], 
+                                    &[model]
+                                );
+                            }
+                            Err(error) => println!("Error generating result: {:?}", error),
+                        }
+
+                        
+
                     }
                     Err(error) => println!("Error solving model: {:?}", error),
                 }
+
+                //Get result dataframe
+
+                //get_result_dataframe returns dataframe
+                //in julia we have to convert the dataframe to something that can be used in rust
+                //Lets change dataframe to a Vec<Tuple<String, f64>>
                 
 
                 Ok(())
@@ -1176,6 +1191,7 @@ pub fn _predicer(
             .expect("result is an error");
     }
 }
+
 
 pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64, data: Vec<(String, f64)>) {
     let mut frame = StackFrame::new();
