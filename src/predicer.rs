@@ -648,6 +648,68 @@ pub fn create_processes<'target, 'data>(frame: &mut frame::GcFrame<'target>, pro
 
 }
 
+pub fn create_markets<'target, 'data>(frame: &mut frame::GcFrame<'target>, markets: &HashMap<&String, &Market<'_>>) {
+
+    frame.scope(|mut frame| {
+
+        //Markets
+
+        for (key, value) in markets {
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+
+            let d1 = JuliaString::new(&mut frame, key).as_value();
+            let d2 = JuliaString::new(&mut frame, &value.m_type).as_value();
+            let d3 = JuliaString::new(&mut frame, &value.node).as_value();
+            let d4 = JuliaString::new(&mut frame, &value.pgroup).as_value();
+            let d5 = JuliaString::new(&mut frame, &value.direction).as_value();
+            let d6 = JuliaString::new(&mut frame, &value.reserve_type).as_value();
+            let d7 = Value::new(&mut frame, value.is_bid);
+            let d8 = Value::new(&mut frame, value.is_limited);
+            let d9 = Value::new(&mut frame, value.min_bid);
+            let d10 = Value::new(&mut frame, value.max_bid);
+            let d11 = Value::new(&mut frame, value.fee);
+
+            let m_args = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11];
+
+            let _market =
+                julia_interface::call(&mut frame, &["Predicer", "create_market"], &m_args)
+                    .into_jlrs_result();
+
+            match _market {
+                Ok(market) => {
+
+                    //ADD TIMESERIES TO MARKET
+
+                    let function = "add_market_prices";
+                    add_timeseries(&mut frame, market, &value.price.ts_data, function);
+
+                    //Create market up prices
+
+                    let function = "add_market_up_prices";
+                    add_timeseries(&mut frame, market, &value.up_price.ts_data, function);
+
+                    //Create market down prices
+
+                    let function = "add_market_down_prices";
+                    add_timeseries(&mut frame, market, &value.down_price.ts_data, function);
+
+                    let _add_to_markets_result = julia_interface::call(
+                        &mut frame,
+                        &["Predicer", "add_to_markets"],
+                        &[market],
+                    );
+                }
+                Err(error) => println!("Error adding market to markets2: {:?}", error),
+            }
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
 
 
 pub fn _predicer(
@@ -685,6 +747,7 @@ pub fn _predicer(
                 let _processes =
                     julia_interface::call(&mut frame, &["Predicer", "return_processes"], &[])
                         .into_jlrs_result();
+
                 let mut list: Vec<Value> = Vec::new();
 
                 match _processes {
@@ -815,55 +878,7 @@ pub fn _predicer(
 
                 //Creating markets
 
-                for (key, value) in &markets {
-                    // An extended target provides a target for the result we want to return and a frame for
-                    // temporary data.
-
-                    let d1 = JuliaString::new(&mut frame, key).as_value();
-                    let d2 = JuliaString::new(&mut frame, &value.m_type).as_value();
-                    let d3 = JuliaString::new(&mut frame, &value.node).as_value();
-                    let d4 = JuliaString::new(&mut frame, &value.pgroup).as_value();
-                    let d5 = JuliaString::new(&mut frame, &value.direction).as_value();
-                    let d6 = JuliaString::new(&mut frame, &value.reserve_type).as_value();
-                    let d7 = Value::new(&mut frame, value.is_bid);
-                    let d8 = Value::new(&mut frame, value.is_limited);
-                    let d9 = Value::new(&mut frame, value.min_bid);
-                    let d10 = Value::new(&mut frame, value.max_bid);
-                    let d11 = Value::new(&mut frame, value.fee);
-
-                    let m_args = [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11];
-
-                    let _market =
-                        julia_interface::call(&mut frame, &["Predicer", "create_market"], &m_args)
-                            .into_jlrs_result();
-
-                    match _market {
-                        Ok(market) => {
-
-                            //ADD TIMESERIES TO MARKET
-
-                            let function = "add_market_prices";
-                            add_timeseries(&mut frame, market, &value.price.ts_data, function);
-
-                            //Create market up prices
-
-                            let function = "add_market_up_prices";
-                            add_timeseries(&mut frame, market, &value.up_price.ts_data, function);
-
-                            //Create market down prices
-
-                            let function = "add_market_down_prices";
-                            add_timeseries(&mut frame, market, &value.down_price.ts_data, function);
-
-                            let _add_to_markets_result = julia_interface::call(
-                                &mut frame,
-                                &["Predicer", "add_to_markets"],
-                                &[market],
-                            );
-                        }
-                        Err(error) => println!("Error adding market to markets2: {:?}", error),
-                    }
-                }
+                create_markets(&mut frame, &markets);
 
                 let m_args = [];
                 let _markets =
