@@ -767,6 +767,55 @@ pub fn create_nodes<'target, 'data>(frame: &mut frame::GcFrame<'target>, nodes: 
 
 }
 
+pub fn create_genconstraints<'target, 'data>(frame: &mut frame::GcFrame<'target>, gen_constraints: &HashMap<&String, &GenConstraint<'_>>) {
+
+    frame.scope(|mut frame| {
+
+        //Gen constraints
+
+        for (key, value) in gen_constraints {
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+
+            let d1 = JuliaString::new(&mut frame, key).as_value();
+            let d2 = JuliaString::new(&mut frame, &value.gc_type).as_value();
+            let d3 = Value::new(&mut frame, value.is_setpoint);
+            let d4 = Value::new(&mut frame, value.penalty);
+
+            let gc_args = [d1, d2, d3, d4];
+
+            let _genconstraint = julia_interface::call(
+                &mut frame,
+                &["Predicer", "create_genconstraint"],
+                &gc_args,
+            )
+            .into_jlrs_result();
+
+            match _genconstraint {
+                Ok(gc_value) => {
+
+                    create_confactors(&mut frame, gc_value, value.factors);
+
+
+                    let _add_to_genconstraints_result = julia_interface::call(
+                        &mut frame,
+                        &["Predicer", "add_to_genconstraints"],
+                        &[gc_value],
+                    );
+                }
+                Err(error) => println!(
+                    "Error adding gen constraint to gen_constraints: {:?}",
+                    error
+                ),
+            }
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
 
 
 pub fn _predicer(
@@ -798,6 +847,8 @@ pub fn _predicer(
                 julia_interface::call(&frame, &["Pkg", "activate"], &[jl_predicer_dir]).unwrap();
                 julia_interface::call(&frame, &["Pkg", "instantiate"], &[]).unwrap();
                 Value::eval_string(&mut frame, "using Predicer").unwrap();
+
+                //Create processes
 
                 create_processes(&mut frame, &processes);
 
@@ -833,7 +884,7 @@ pub fn _predicer(
                     Err(error) => println!("Error returning nodes: {:?}", error),
                 }
 
-                //Node diffusion
+                //Create node diffusion
 
                 create_node_diffusion(&mut frame, node_diffusion);
 
@@ -853,7 +904,7 @@ pub fn _predicer(
                     Err(error) => println!("Error returning node diffusion tuples: {:?}", error),
                 }
 
-                //node_delay
+                //Create node_delay
 
                 create_node_delay(&mut frame, node_delay);
 
@@ -873,7 +924,7 @@ pub fn _predicer(
                     Err(error) => println!("Error returning node diffusion tuples: {:?}", error),
                 }
 
-                //node_histories
+                //Create node histories
 
                 let args1 = [];
                 let node_histories = julia_interface::call(
@@ -891,7 +942,7 @@ pub fn _predicer(
                     Err(error) => println!("Error adding node histories: {:?}", error),
                 }
 
-                //Creating markets
+                //Create markets
 
                 create_markets(&mut frame, &markets);
 
@@ -908,7 +959,7 @@ pub fn _predicer(
                     Err(error) => println!("Error returning markets: {:?}", error),
                 }
 
-                //Creating groups
+                //Create groups
 
                 create_groups(&mut frame, &groups);
 
@@ -926,44 +977,9 @@ pub fn _predicer(
                     Err(error) => println!("Error returning groups: {:?}", error),
                 }
 
-                //gen_constraints
+                //Create gen constraints
 
-                for (key, value) in &gen_constraints {
-                    // An extended target provides a target for the result we want to return and a frame for
-                    // temporary data.
-
-                    let d1 = JuliaString::new(&mut frame, key).as_value();
-                    let d2 = JuliaString::new(&mut frame, &value.gc_type).as_value();
-                    let d3 = Value::new(&mut frame, value.is_setpoint);
-                    let d4 = Value::new(&mut frame, value.penalty);
-
-                    let gc_args = [d1, d2, d3, d4];
-
-                    let _genconstraint = julia_interface::call(
-                        &mut frame,
-                        &["Predicer", "create_genconstraint"],
-                        &gc_args,
-                    )
-                    .into_jlrs_result();
-
-                    match _genconstraint {
-                        Ok(gc_value) => {
-
-                            create_confactors(&mut frame, gc_value, value.factors);
-
-
-                            let _add_to_genconstraints_result = julia_interface::call(
-                                &mut frame,
-                                &["Predicer", "add_to_genconstraints"],
-                                &[gc_value],
-                            );
-                        }
-                        Err(error) => println!(
-                            "Error adding gen constraint to gen_constraints: {:?}",
-                            error
-                        ),
-                    }
-                }
+                create_genconstraints(&mut frame, &gen_constraints);
 
                 let gc_args = [];
                 let _genconstraints = julia_interface::call(
@@ -981,7 +997,7 @@ pub fn _predicer(
                     Err(error) => println!("Error returning genconstraints: {:?}", error),
                 }
 
-                //Scenarios
+                //Create scenarios
 
                 let r_scenarios: Vec<(String, f64)> =
                     vec![(String::from("s1"), 0.5), (String::from("s2"), 0.5)];
@@ -990,7 +1006,7 @@ pub fn _predicer(
                     julia_interface::to_ordered_dict(frame.as_extended_target(), &r_scenarios)
                         .unwrap();
 
-                //reserve_type on tyhjä
+                //Create reserve type (empty)
 
                 let r_reserve_type: Vec<(String, f64)> = Vec::new();
 
@@ -998,7 +1014,7 @@ pub fn _predicer(
                     julia_interface::to_ordered_dict(frame.as_extended_target(), &r_reserve_type)
                         .unwrap();
 
-                //Risk
+                //Create risk
 
                 let r_risk: Vec<(String, f64)> =
                     vec![(String::from("alfa"), 0.1), (String::from("beta"), 0.0)];
@@ -1006,7 +1022,7 @@ pub fn _predicer(
                 let j_risk =
                     julia_interface::to_ordered_dict(frame.as_extended_target(), &r_risk).unwrap();
 
-                //inflow_blocks
+                //Create inflow blocks
 
                 let args1 = [];
                 let inflowblocks =
@@ -1021,7 +1037,7 @@ pub fn _predicer(
                     Err(error) => println!("Error adding inflowblocks: {:?}", error),
                 }
 
-                //Boolean parameters
+                //Create boolean parameters for input data
 
                 let j_contains_reserves = Value::new(&mut frame, contains_reserves);
                 let j_contains_online = Value::new(&mut frame, contains_online);
@@ -1030,6 +1046,8 @@ pub fn _predicer(
                 let j_contains_risk = Value::new(&mut frame, contains_risk);
                 let j_contains_delay = Value::new(&mut frame, contains_delay);
                 let j_contains_diffusion = Value::new(&mut frame, contains_diffusion);
+
+                //Parameters for creating input data
 
                 let i_args = [
                     list[0], //processes
@@ -1040,21 +1058,24 @@ pub fn _predicer(
                     list[5], //markets
                     list[6], //groups
                     list[7], //gengonstraints
-                    j_scenarios,
-                    j_reserve_type,
-                    j_risk,
+                    j_scenarios, //scenarios
+                    j_reserve_type, //reserve_type
+                    j_risk, //risk
                     list[8], //inflowblocks
-                    j_contains_reserves,
-                    j_contains_online,
-                    j_contains_state,
-                    j_contains_piecewise_eff,
-                    j_contains_risk,
-                    j_contains_delay,
-                    j_contains_diffusion,
+                    j_contains_reserves, //contains reserves
+                    j_contains_online, //contains online
+                    j_contains_state, //contains state
+                    j_contains_piecewise_eff, //contains piecewise eff
+                    j_contains_risk, //contains risk
+                    j_contains_delay, //contains delay
+                    j_contains_diffusion, //contains diffusion
                 ];
 
+                //Create input data
                 
                 let _input_data = julia_interface::call(&mut frame, &["Predicer", "create_inputdata"], &i_args).into_jlrs_result();
+
+                //Solve model
 
                 match _input_data {
                     Ok(id_value) => {
