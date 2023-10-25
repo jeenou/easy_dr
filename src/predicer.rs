@@ -847,114 +847,50 @@ pub fn _predicer(
                             for confactor in value.factors {
 
                                                             //ADD TIMESERIES TO CONFACTOR
-                            
-                                let _create_timeseriesdata = julia_interface::call(
-                                    &mut frame,
-                                    &["Predicer", "create_timeseriesdata"],
-                                    &[],
-                                );
 
-                                match _create_timeseriesdata {
-                                    Ok(timeseriesdata) => {
+                                //create confactor
 
-                                        for _time_serie in &confactor.data.ts_data {
+                                let s1 = JuliaString::new(&mut frame, &confactor.flow.0).as_value();
+                                let s2 = JuliaString::new(&mut frame, &confactor.flow.1).as_value();
 
-                                            let ts_scenario = JuliaString::new(&mut frame, &_time_serie.scenario).as_value();
+                                let g_args = [s1, s2];
 
-                                            let _create_timeseries = julia_interface::call(
-                                                &mut frame,
-                                                &["Predicer", "create_timeseries"],
-                                                &[ts_scenario],
-                                            );
+                                //create vartuple
 
-                                            match _create_timeseries {
-                                                Ok(timeserie) => {
+                                let _create_vartuple =
+                                julia_interface::call(&mut frame, &["Predicer", "create_vartuple"], &g_args)
+                                    .into_jlrs_result();
 
-                                                    for time_point in &_time_serie.series {
+                                match _create_vartuple {
+                                    Ok(vartuple) => {
 
-                                                        let j_timestamp = JuliaString::new(&mut frame, &time_point.0).as_value();
-                                                        let j_inflow = Value::new(&mut frame, time_point.1);
-
-                                                        let _make_time_point = julia_interface::call(
-                                                            &mut frame,
-                                                            &["Predicer", "make_time_point"],
-                                                            &[j_timestamp, j_inflow],
-                                                        );
-
-                                                        match _make_time_point {
-                                                            Ok(time_point) => {
-                                                                let _push_time_point = julia_interface::call(
-                                                                    &mut frame,
-                                                                    &["Predicer", "push_time_point"],
-                                                                    &[timeserie, time_point],
-                                                                );
-                                                            }
-                                                            Err(error) => println!("Error creating time point: {:?}", error),
-                                                        } 
-                                                        
-                                                    }
-
-                                                    let _push_timeseries = julia_interface::call(
-                                                        &mut frame,
-                                                        &["Predicer", "push_timeseries"],
-                                                        &[timeseriesdata, timeserie],
-                                                    );
-                                                    
-                                                }
-                                                Err(error) => println!("Error creating timeseries: {:?}", error),
-                                            }       
-                                        }
+                                        let vartype = JuliaString::new(&mut frame, &confactor.var_type).as_value();
 
                                         //create confactor
 
-                                        let s1 = JuliaString::new(&mut frame, &confactor.flow.0).as_value();
-                                        let s2 = JuliaString::new(&mut frame, &confactor.flow.1).as_value();
+                                        let _create_confactor = julia_interface::call(
+                                            &mut frame,
+                                            &["Predicer", "create_confactor"],
+                                            &[vartype, vartuple],
+                                        );
+                                        match _create_confactor {
+                                            Ok(confactor_value) => {
 
-                                        let g_args = [s1, s2];
+                                                let function = "add_ts_to_confactor";
+                                                add_timeseries(&mut frame, confactor_value, &confactor.data.ts_data, function);        
 
-                                        //create vartuple
+                                                //add confactor to gen constraints
 
-                                        let _create_vartuple =
-                                        julia_interface::call(&mut frame, &["Predicer", "create_vartuple"], &g_args)
-                                            .into_jlrs_result();
-
-                                        match _create_vartuple {
-                                            Ok(vartuple) => {
-
-                                                let vartype = JuliaString::new(&mut frame, &confactor.var_type).as_value();
-
-                                                //create confactor
-
-                                                let _create_confactor = julia_interface::call(
+                                                let _add_confactor_to_gc = julia_interface::call(
                                                     &mut frame,
-                                                    &["Predicer", "create_confactor"],
-                                                    &[vartype, vartuple],
+                                                    &["Predicer", "add_confactor_to_gc"],
+                                                    &[confactor_value,  gc_value],
                                                 );
-                                                match _create_confactor {
-                                                    Ok(confactor_value) => {        
-                
-                                                        let _add_ts_to_confactor = julia_interface::call(
-                                                            &mut frame,
-                                                            &["Predicer", "add_ts_to_confactor"],
-                                                            &[confactor_value, timeseriesdata],
-                                                        );
-
-                                                        //add confactor to gen constraints
-
-                                                        let _add_confactor_to_gc = julia_interface::call(
-                                                            &mut frame,
-                                                            &["Predicer", "add_confactor_to_gc"],
-                                                            &[confactor_value,  gc_value],
-                                                        );
-                                                    }
-                                                    Err(error) => println!("Error creating confactor: {:?}", error),
-                                                }
                                             }
-                                            Err(error) => println!("Error creating vartuple: {:?}", error),
+                                            Err(error) => println!("Error creating confactor: {:?}", error),
                                         }
-
                                     }
-                                    Err(error) => println!("Error creating timeseriesdata: {:?}", error),
+                                    Err(error) => println!("Error creating vartuple: {:?}", error),
                                 }
 
                             }
