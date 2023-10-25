@@ -811,74 +811,8 @@ pub fn _predicer(
 
                             //Create market up prices
 
-                            let _create_market_up_ts = julia_interface::call(
-                                &mut frame,
-                                &["Predicer", "create_timeseriesdata"],
-                                &[],
-                            );
-
-                            match _create_market_up_ts {
-                                Ok(timeseriesdata) => {
-
-                                    for _time_serie in &value.up_price.ts_data {
-
-                                        let ts_scenario = JuliaString::new(&mut frame, &_time_serie.scenario).as_value();
-
-                                        let _create_timeseries = julia_interface::call(
-                                            &mut frame,
-                                            &["Predicer", "create_timeseries"],
-                                            &[ts_scenario],
-                                        );
-
-                                        match _create_timeseries {
-                                            Ok(timeserie) => {
-
-                                                for time_point in &_time_serie.series {
-
-                                                    let j_timestamp = JuliaString::new(&mut frame, &time_point.0).as_value();
-                                                    let j_inflow = Value::new(&mut frame, time_point.1);
-
-                                                    let _make_time_point = julia_interface::call(
-                                                        &mut frame,
-                                                        &["Predicer", "make_time_point"],
-                                                        &[j_timestamp, j_inflow],
-                                                    );
-
-                                                    match _make_time_point {
-                                                        Ok(time_point) => {
-                                                            let _push_time_point = julia_interface::call(
-                                                                &mut frame,
-                                                                &["Predicer", "push_time_point"],
-                                                                &[timeserie, time_point],
-                                                            );
-                                                        }
-                                                        Err(error) => println!("Error creating market time point: {:?}", error),
-                                                    } 
-                                                    
-                                                }
-
-                                                let _push_timeseries = julia_interface::call(
-                                                    &mut frame,
-                                                    &["Predicer", "push_timeseries"],
-                                                    &[timeseriesdata, timeserie],
-                                                );
-                                                
-                                            }
-                                            Err(error) => println!("Error creating market timeseries: {:?}", error),
-                                        }       
-                                    }
-
-                                    //add timeseries to market
-
-                                    let _add_market_up_prices = julia_interface::call(
-                                        &mut frame,
-                                        &["Predicer", "add_market_up_prices"],
-                                        &[market, timeseriesdata],
-                                    );
-
-                                }
-                                Err(error) => println!("Error creating market timeseriesdata: {:?}", error),
-                            }
+                            let function = "add_market_up_prices";
+                            add_timeseries(&mut frame, market, &value.up_price.ts_data, function);
 
                             //Create market down prices
 
