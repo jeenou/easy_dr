@@ -443,11 +443,27 @@ pub fn add_inflow<'target, 'data>(frame: &mut frame::GcFrame<'target>, node: Val
 
 }
 
-pub fn _example<'target, 'data>(frame: &mut frame::GcFrame<'target>, node: &&Node<'_>) {
+pub fn create_node_diffusion<'target, 'data>(frame: &mut frame::GcFrame<'target>, node_diffusion: HashMap<&String, &NodeDiffusion>) {
 
     frame.scope(|mut frame| {
 
+        //Node diffusion
 
+        for (_key, value) in &node_diffusion {
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+
+            let nd_d1 = JuliaString::new(&mut frame, &value.node1).as_value();
+            let nd_d2 = JuliaString::new(&mut frame, &value.node2).as_value();
+            let nd_d3 = Value::new(&mut frame, value.diff_coeff);
+
+            let _node_diffusion_tuple = julia_interface::call(
+                &mut frame,
+                &["Predicer", "create_node_diffusion_tuple"],
+                &[nd_d1, nd_d2, nd_d3],
+            )
+            .into_jlrs_result();
+        }
 
         Ok(())
 
@@ -595,21 +611,7 @@ pub fn _predicer(
 
                 //Node diffusion
 
-                for (_key, value) in &node_diffusion {
-                    // An extended target provides a target for the result we want to return and a frame for
-                    // temporary data.
-
-                    let nd_d1 = JuliaString::new(&mut frame, &value.node1).as_value();
-                    let nd_d2 = JuliaString::new(&mut frame, &value.node2).as_value();
-                    let nd_d3 = Value::new(&mut frame, value.diff_coeff);
-
-                    let _node_diffusion_tuple = julia_interface::call(
-                        &mut frame,
-                        &["Predicer", "create_node_diffusion_tuple"],
-                        &[nd_d1, nd_d2, nd_d3],
-                    )
-                    .into_jlrs_result();
-                }
+                create_node_diffusion(&mut frame, node_diffusion);
 
                 let nd_args = [];
                 let _node_diffusion_tuples = julia_interface::call(
