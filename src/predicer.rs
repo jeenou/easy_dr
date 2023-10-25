@@ -472,12 +472,12 @@ pub fn add_timeseries<'target, 'data>(frame: &mut frame::GcFrame<'target>, julia
                             for time_point in &_time_serie.series {
 
                                 let j_timestamp = JuliaString::new(&mut frame, &time_point.0).as_value();
-                                let j_inflow = Value::new(&mut frame, time_point.1);
+                                let j_value = Value::new(&mut frame, time_point.1);
 
                                 let _make_time_point = julia_interface::call(
                                     &mut frame,
                                     &["Predicer", "make_time_point"],
-                                    &[j_timestamp, j_inflow],
+                                    &[j_timestamp, j_value],
                                 );
 
                                 match _make_time_point {
@@ -806,76 +806,8 @@ pub fn _predicer(
 
                             //ADD TIMESERIES TO MARKET
 
-                            //create TimeSeriesData
-
-                            let _create_market_timeseries = julia_interface::call(
-                                &mut frame,
-                                &["Predicer", "create_timeseriesdata"],
-                                &[],
-                            );
-
-                            match _create_market_timeseries {
-                                Ok(timeseriesdata) => {
-
-                                    for _time_serie in &value.price.ts_data {
-
-                                        let ts_scenario = JuliaString::new(&mut frame, &_time_serie.scenario).as_value();
-
-                                        let _create_timeseries = julia_interface::call(
-                                            &mut frame,
-                                            &["Predicer", "create_timeseries"],
-                                            &[ts_scenario],
-                                        );
-
-                                        match _create_timeseries {
-                                            Ok(timeserie) => {
-
-                                                for time_point in &_time_serie.series {
-
-                                                    let j_timestamp = JuliaString::new(&mut frame, &time_point.0).as_value();
-                                                    let j_inflow = Value::new(&mut frame, time_point.1);
-
-                                                    let _make_time_point = julia_interface::call(
-                                                        &mut frame,
-                                                        &["Predicer", "make_time_point"],
-                                                        &[j_timestamp, j_inflow],
-                                                    );
-
-                                                    match _make_time_point {
-                                                        Ok(time_point) => {
-                                                            let _push_time_point = julia_interface::call(
-                                                                &mut frame,
-                                                                &["Predicer", "push_time_point"],
-                                                                &[timeserie, time_point],
-                                                            );
-                                                        }
-                                                        Err(error) => println!("Error creating market time point: {:?}", error),
-                                                    } 
-                                                    
-                                                }
-
-                                                let _push_timeseries = julia_interface::call(
-                                                    &mut frame,
-                                                    &["Predicer", "push_timeseries"],
-                                                    &[timeseriesdata, timeserie],
-                                                );
-                                                
-                                            }
-                                            Err(error) => println!("Error creating market timeseries: {:?}", error),
-                                        }       
-                                    }
-
-                                    //add timeseries to market
-
-                                    let _add_market_prices = julia_interface::call(
-                                        &mut frame,
-                                        &["Predicer", "add_market_prices"],
-                                        &[market, timeseriesdata],
-                                    );
-
-                                }
-                                Err(error) => println!("Error creating market timeseriesdata: {:?}", error),
-                            }
+                            let function = "add_market_prices";
+                            add_timeseries(&mut frame, market, &value.price.ts_data, function);
 
                             //Create market up prices
 
