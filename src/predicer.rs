@@ -539,6 +539,69 @@ pub fn create_node_delay<'target, 'data>(frame: &mut frame::GcFrame<'target>, no
 
 }
 
+pub fn create_confactors<'target, 'data>(frame: &mut frame::GcFrame<'target>, gc_value: Value<'_, '_>, factors: &Vec<ConFactor<'_>>) {
+
+    frame.scope(|mut frame| {
+
+        //Confactors
+
+        for confactor in factors {
+
+            let s1 = JuliaString::new(&mut frame, &confactor.flow.0).as_value();
+            let s2 = JuliaString::new(&mut frame, &confactor.flow.1).as_value();
+        
+            let g_args = [s1, s2];
+        
+            //create vartuple
+        
+            let _create_vartuple =
+            julia_interface::call(&mut frame, &["Predicer", "create_vartuple"], &g_args)
+                .into_jlrs_result();
+        
+            match _create_vartuple {
+                Ok(vartuple) => {
+        
+                    let vartype = JuliaString::new(&mut frame, &confactor.var_type).as_value();
+        
+                    //create confactor
+        
+                    let _create_confactor = julia_interface::call(
+                        &mut frame,
+                        &["Predicer", "create_confactor"],
+                        &[vartype, vartuple],
+                    );
+                    match _create_confactor {
+                        Ok(confactor_value) => {
+        
+                            //add confactor timeseries
+        
+                            let function = "add_ts_to_confactor";
+                            add_timeseries(&mut frame, confactor_value, &confactor.data.ts_data, function);        
+        
+                            //add confactor to gen constraints
+        
+                            let _add_confactor_to_gc = julia_interface::call(
+                                &mut frame,
+                                &["Predicer", "add_confactor_to_gc"],
+                                &[confactor_value,  gc_value],
+                            );
+                        }
+                        Err(error) => println!("Error creating confactor: {:?}", error),
+                    }
+                }
+                Err(error) => println!("Error creating vartuple: {:?}", error),
+            }
+        
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
+
+
 pub fn _predicer(
     contains_reserves: bool,
     contains_online: bool,
@@ -842,58 +905,7 @@ pub fn _predicer(
                     match _genconstraint {
                         Ok(gc_value) => {
 
-                            //CREATE VARTUPLE FOR CONFACTOR
-
-                            for confactor in value.factors {
-
-                                                            //ADD TIMESERIES TO CONFACTOR
-
-                                //create confactor
-
-                                let s1 = JuliaString::new(&mut frame, &confactor.flow.0).as_value();
-                                let s2 = JuliaString::new(&mut frame, &confactor.flow.1).as_value();
-
-                                let g_args = [s1, s2];
-
-                                //create vartuple
-
-                                let _create_vartuple =
-                                julia_interface::call(&mut frame, &["Predicer", "create_vartuple"], &g_args)
-                                    .into_jlrs_result();
-
-                                match _create_vartuple {
-                                    Ok(vartuple) => {
-
-                                        let vartype = JuliaString::new(&mut frame, &confactor.var_type).as_value();
-
-                                        //create confactor
-
-                                        let _create_confactor = julia_interface::call(
-                                            &mut frame,
-                                            &["Predicer", "create_confactor"],
-                                            &[vartype, vartuple],
-                                        );
-                                        match _create_confactor {
-                                            Ok(confactor_value) => {
-
-                                                let function = "add_ts_to_confactor";
-                                                add_timeseries(&mut frame, confactor_value, &confactor.data.ts_data, function);        
-
-                                                //add confactor to gen constraints
-
-                                                let _add_confactor_to_gc = julia_interface::call(
-                                                    &mut frame,
-                                                    &["Predicer", "add_confactor_to_gc"],
-                                                    &[confactor_value,  gc_value],
-                                                );
-                                            }
-                                            Err(error) => println!("Error creating confactor: {:?}", error),
-                                        }
-                                    }
-                                    Err(error) => println!("Error creating vartuple: {:?}", error),
-                                }
-
-                            }
+                            create_confactors(&mut frame, gc_value, value.factors);
 
 
                             let _add_to_genconstraints_result = julia_interface::call(
@@ -1007,51 +1019,9 @@ pub fn _predicer(
                             &["Predicer", "solve_hertta"], 
                             &[id_value]
                         );
-
-
-                        let _p_type = JuliaString::new(&mut frame, String::from("v_flow")).as_value();
-                        let _name = JuliaString::new(&mut frame, String::from("electricheater")).as_value();
-                        let _scenario = JuliaString::new(&mut frame, String::from("s1")).as_value();
-
-                        let result_time_series: Vec<(String, f64)> = Vec::new();
-
-                        match _generate_model_result {
-                            Ok(df) => {
-                                let _get_result_vec = julia_interface::call(
-                                    &mut frame, 
-                                    &["Predicer", "convert_df_to_vector"], 
-                                    &[df]
-                                );
-
-                                match _get_result_vec {
-                                    Ok(result_vec) => {
-                                        let _get_value = julia_interface::call(
-                                            &mut frame, 
-                                            &["Predicer", "get_first_tuple_value"], 
-                                            &[result_vec]
-                                        );
-
-                                        //add result 
-
-                                    }
-                                    Err(error) => println!("Error generating result: {:?}", error),
-                                }
-                            }
-                            Err(error) => println!("Error generating result: {:?}", error),
-                        }
-
-                        
-
                     }
                     Err(error) => println!("Error solving model: {:?}", error),
-                }
-
-                //Get result dataframe
-
-                //get_result_dataframe returns dataframe
-                //in julia we have to convert the dataframe to something that can be used in rust
-                //Lets change dataframe to a Vec<Tuple<String, f64>>
-                
+                }                
 
                 Ok(())
             })
