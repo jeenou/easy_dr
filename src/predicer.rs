@@ -600,6 +600,54 @@ pub fn create_confactors<'target, 'data>(frame: &mut frame::GcFrame<'target>, gc
 
 }
 
+pub fn create_processes<'target, 'data>(frame: &mut frame::GcFrame<'target>, processes: &HashMap<&String, &Process<'_>>) {
+
+    frame.scope(|mut frame| {
+
+        //Processes
+
+        for (key, value) in processes {
+            let p_name = JuliaString::new(&mut frame, key).as_value();
+            let p_conversion = Value::new(&mut frame, value.conversion);
+            let p_group = JuliaString::new(&mut frame, &value.group).as_value();
+            let p_delay = Value::new(&mut frame, value.delay);
+
+
+            let process_result = julia_interface::call(
+                &mut frame,
+                &["Predicer", "create_process"],
+                &[p_name, p_conversion, p_delay],
+            )
+            .into_jlrs_result();
+
+            match process_result {
+                Ok(process) => {
+
+                    add_topology(&mut frame, process, value.topos); 
+
+                    let _add_group_to_processes = julia_interface::call(
+                        &mut frame,
+                        &["Predicer", "add_group_to_process"],
+                        &[process, p_group],
+                    );
+
+                    let _add_to_processes = julia_interface::call(
+                        &mut frame, 
+                        &["Predicer", "add_to_processes"], 
+                        &[process]
+                    ).into_jlrs_result();
+
+                }
+                Err(error) => println!("Error creating process: {:?}", error),
+            }
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
 
 
 pub fn _predicer(
@@ -632,41 +680,7 @@ pub fn _predicer(
                 julia_interface::call(&frame, &["Pkg", "instantiate"], &[]).unwrap();
                 Value::eval_string(&mut frame, "using Predicer").unwrap();
 
-                for (key, value) in &processes {
-                    let p_name = JuliaString::new(&mut frame, key).as_value();
-                    let p_conversion = Value::new(&mut frame, value.conversion);
-                    let p_group = JuliaString::new(&mut frame, &value.group).as_value();
-                    let p_delay = Value::new(&mut frame, value.delay);
-
-
-                    let process_result = julia_interface::call(
-                        &mut frame,
-                        &["Predicer", "create_process"],
-                        &[p_name, p_conversion, p_delay],
-                    )
-                    .into_jlrs_result();
-
-                    match process_result {
-                        Ok(process) => {
-
-                            add_topology(&mut frame, process, value.topos); 
-
-                            let _add_group_to_processes = julia_interface::call(
-                                &mut frame,
-                                &["Predicer", "add_group_to_process"],
-                                &[process, p_group],
-                            );
-
-                            let _add_to_processes = julia_interface::call(
-                                &mut frame, 
-                                &["Predicer", "add_to_processes"], 
-                                &[process]
-                            ).into_jlrs_result();
-
-                        }
-                        Err(error) => println!("Error creating process: {:?}", error),
-                    }
-                }
+                create_processes(&mut frame, &processes);
 
                 let _processes =
                     julia_interface::call(&mut frame, &["Predicer", "return_processes"], &[])
