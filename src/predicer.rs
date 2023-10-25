@@ -2,6 +2,9 @@ use crate::julia_interface;
 use jlrs::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use jlrs::memory::target::frame;
+use jlrs::convert::into_julia;
+use jlrs::data::managed::union_all::UnionAll;
 
 pub struct Process<'a> {
     pub name: String,
@@ -251,6 +254,74 @@ pub fn _ordered_dict(data: Vec<(String, f64)>) {
         .expect("result is an error");
 }
 
+//voiko unrootata julia valuen sisemmästä scopesta? voiko siirtää scopesta toiseen, managed tai unmanaged
+
+fn make_vector<'target, 'data, V: Copy + into_julia::IntoJulia>(frame: &mut frame::GcFrame<'target>, values: &[V], processes: HashMap<&String, &Process>) -> ValueResult<'target, 'data, frame::GcFrame<'target>> {
+    let vector_type_generic = unsafe {
+        Module::main(&frame).global(&frame, "Vector").unwrap().as_managed().cast::<UnionAll>().unwrap()
+    };
+    let types = [
+        DataType::int64_type(frame).as_value(),
+    ];
+    let vector = unsafe {
+        let vector_type = vector_type_generic
+            .apply_types(&frame, types)
+            .unwrap()
+            .as_managed();
+        vector_type.call0(&frame).unwrap().as_managed()
+    };
+    let push = unsafe {
+        Module::base(&frame).function(&frame, "push!").expect("failed!").as_managed()
+    };
+    for x in values {
+        frame.scope(|mut frame| {
+            let value = Value::new(&mut frame, *x);
+            unsafe {
+                push.call2(&mut frame, vector, value)
+            }.unwrap();
+            Ok(())
+        }).unwrap();
+    }
+    Ok(vector)
+}
+
+pub fn add_topology<'target, 'data>(frame: &mut frame::GcFrame<'target>, process: Value<'_, '_>, topos: &Vec<Topology>) {
+
+    frame.scope(|mut frame| {
+
+        for topo in topos {
+            let t_source = JuliaString::new(&mut frame, &topo.source).as_value();
+            let t_sink = JuliaString::new(&mut frame, &topo.sink).as_value();
+            let t_capacity = Value::new(&mut frame, topo.capacity);
+            let t_vom_cost = Value::new(&mut frame, topo.vom_cost);
+            let t_ramp_up = Value::new(&mut frame, topo.ramp_up);
+            let t_ramp_down = Value::new(&mut frame, topo.ramp_down);
+
+            let _create_topology = julia_interface::call(
+                &mut frame,
+                &["Predicer", "create_topology"],
+                &[t_source, t_sink, t_capacity, t_vom_cost, t_ramp_up, t_ramp_down],
+            );
+
+            match _create_topology {
+                Ok(topology) => {
+                    let _add_topology = julia_interface::call(
+                        &mut frame, 
+                        &["Predicer", "add_topology"], 
+                        &[process, topology]
+                    );
+                }
+                Err(error) => println!("Error adding topology to process: {:?}", error),
+            }
+
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
 pub fn _predicer(
     contains_reserves: bool,
     contains_online: bool,
@@ -298,32 +369,7 @@ pub fn _predicer(
                     match process_result {
                         Ok(process) => {
 
-                            for topo in value.topos {
-                                let t_source = JuliaString::new(&mut frame, &topo.source).as_value();
-                                let t_sink = JuliaString::new(&mut frame, &topo.sink).as_value();
-                                let t_capacity = Value::new(&mut frame, topo.capacity);
-                                let t_vom_cost = Value::new(&mut frame, topo.vom_cost);
-                                let t_ramp_up = Value::new(&mut frame, topo.ramp_up);
-                                let t_ramp_down = Value::new(&mut frame, topo.ramp_down);
-
-                                let _create_topology = julia_interface::call(
-                                    &mut frame,
-                                    &["Predicer", "create_topology"],
-                                    &[t_source, t_sink, t_capacity, t_vom_cost, t_ramp_up, t_ramp_down],
-                                );
-
-                                match _create_topology {
-                                    Ok(topology) => {
-                                        let _add_topology = julia_interface::call(
-                                            &mut frame, 
-                                            &["Predicer", "add_topology"], 
-                                            &[process, topology]
-                                        );
-                                    }
-                                    Err(error) => println!("Error adding topology to process: {:?}", error),
-                                }
-
-                            }   
+                            add_topology(&mut frame, process, value.topos); 
 
                             let _add_group_to_processes = julia_interface::call(
                                 &mut frame,
@@ -1161,14 +1207,29 @@ pub fn _predicer(
                         let _name = JuliaString::new(&mut frame, String::from("electricheater")).as_value();
                         let _scenario = JuliaString::new(&mut frame, String::from("s1")).as_value();
 
+                        let result_time_series: Vec<(String, f64)> = Vec::new();
 
                         match _generate_model_result {
-                            Ok(model) => {
-                                let _get_process_data = julia_interface::call(
+                            Ok(df) => {
+                                let _get_result_vec = julia_interface::call(
                                     &mut frame, 
                                     &["Predicer", "convert_df_to_vector"], 
-                                    &[model]
+                                    &[df]
                                 );
+
+                                match _get_result_vec {
+                                    Ok(result_vec) => {
+                                        let _get_value = julia_interface::call(
+                                            &mut frame, 
+                                            &["Predicer", "get_first_tuple_value"], 
+                                            &[result_vec]
+                                        );
+
+                                        //add result 
+
+                                    }
+                                    Err(error) => println!("Error generating result: {:?}", error),
+                                }
                             }
                             Err(error) => println!("Error generating result: {:?}", error),
                         }
@@ -1191,6 +1252,7 @@ pub fn _predicer(
             .expect("result is an error");
     }
 }
+
 
 
 pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64, data: Vec<(String, f64)>) {
