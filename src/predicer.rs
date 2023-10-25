@@ -710,6 +710,63 @@ pub fn create_markets<'target, 'data>(frame: &mut frame::GcFrame<'target>, marke
 
 }
 
+pub fn create_nodes<'target, 'data>(frame: &mut frame::GcFrame<'target>, nodes: &HashMap<&String, &Node<'_>>) {
+
+    frame.scope(|mut frame| {
+
+        //Nodes
+
+        for (key, value) in nodes {
+
+            let n_name = JuliaString::new(&mut frame, key).as_value();
+            let n_is_commodity = Value::new(&mut frame, value.is_commodity);
+            let n_is_market = Value::new(&mut frame, value.is_market);
+            let n_is_inflow = Value::new(&mut frame, value.is_inflow);
+            let n_is_state = Value::new(&mut frame, value.is_state);
+
+            let _create_node = julia_interface::call(
+                &mut frame,
+                &["Predicer", "create_node"],
+                &[n_name, n_is_commodity, n_is_market, n_is_inflow, n_is_state],
+            )
+            .into_jlrs_result();
+
+            match _create_node {
+                Ok(node) => {
+
+                    //create state
+
+                    if value.is_state {
+
+                        add_state(&mut frame, node, value);
+
+                    }
+
+                    //add inflow
+
+                    if value.is_inflow {
+
+                        let function = "add_inflow_to_node";
+                        add_timeseries(&mut frame, node, &value.inflow.ts_data, function)
+
+                    }
+
+                    let _add_to_nodes_result = julia_interface::call(
+                        &mut frame,
+                        &["Predicer", "add_to_nodes"],
+                        &[node],
+                    );
+                }
+                Err(error) => println!("Error creating node: {:?}", error),
+            }
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
 
 
 pub fn _predicer(
@@ -760,50 +817,8 @@ pub fn _predicer(
 
                 //Create nodes
 
-                for (key, value) in &nodes {
+                create_nodes(&mut frame, &nodes);
 
-                    let n_name = JuliaString::new(&mut frame, key).as_value();
-                    let n_is_commodity = Value::new(&mut frame, value.is_commodity);
-                    let n_is_market = Value::new(&mut frame, value.is_market);
-                    let n_is_inflow = Value::new(&mut frame, value.is_inflow);
-                    let n_is_state = Value::new(&mut frame, value.is_state);
-
-                    let _create_node = julia_interface::call(
-                        &mut frame,
-                        &["Predicer", "create_node"],
-                        &[n_name, n_is_commodity, n_is_market, n_is_inflow, n_is_state],
-                    )
-                    .into_jlrs_result();
-
-                    match _create_node {
-                        Ok(node) => {
-
-                            //create state
-
-                            if value.is_state {
-
-                                add_state(&mut frame, node, value);
-
-                            }
-
-                            //add inflow
-
-                            if value.is_inflow {
-
-                                let function = "add_inflow_to_node";
-                                add_timeseries(&mut frame, node, &value.inflow.ts_data, function)
-
-                            }
-
-                            let _add_to_nodes_result = julia_interface::call(
-                                &mut frame,
-                                &["Predicer", "add_to_nodes"],
-                                &[node],
-                            );
-                        }
-                        Err(error) => println!("Error creating node: {:?}", error),
-                    }
-                }
 
                 let n_args = [];
                 let _nodes =
