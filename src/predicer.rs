@@ -443,6 +443,85 @@ pub fn add_inflow<'target, 'data>(frame: &mut frame::GcFrame<'target>, node: Val
 
 }
 
+pub fn add_timeseries<'target, 'data>(frame: &mut frame::GcFrame<'target>, julia_value: Value<'_, '_>, ts_data: &Vec<TimeSeries>, function: &str) {
+
+    frame.scope(|mut frame| {
+
+        let _create_timeseriesdata = julia_interface::call(
+            &mut frame,
+            &["Predicer", "create_timeseriesdata"],
+            &[],
+        );
+
+        match _create_timeseriesdata {
+            Ok(timeseriesdata) => {
+
+                for _time_serie in ts_data {
+
+                    let ts_scenario = JuliaString::new(&mut frame, &_time_serie.scenario).as_value();
+
+                    let _create_timeseries = julia_interface::call(
+                        &mut frame,
+                        &["Predicer", "create_timeseries"],
+                        &[ts_scenario],
+                    );
+
+                    match _create_timeseries {
+                        Ok(timeserie) => {
+
+                            for time_point in &_time_serie.series {
+
+                                let j_timestamp = JuliaString::new(&mut frame, &time_point.0).as_value();
+                                let j_inflow = Value::new(&mut frame, time_point.1);
+
+                                let _make_time_point = julia_interface::call(
+                                    &mut frame,
+                                    &["Predicer", "make_time_point"],
+                                    &[j_timestamp, j_inflow],
+                                );
+
+                                match _make_time_point {
+                                    Ok(time_point) => {
+                                        let _push_time_point = julia_interface::call(
+                                            &mut frame,
+                                            &["Predicer", "push_time_point"],
+                                            &[timeserie, time_point],
+                                        );
+                                    }
+                                    Err(error) => println!("Error creating time point: {:?}", error),
+                                } 
+                                
+                            }
+
+                            let _push_timeseries = julia_interface::call(
+                                &mut frame,
+                                &["Predicer", "push_timeseries"],
+                                &[timeseriesdata, timeserie],
+                            );
+                            
+                        }
+                        Err(error) => println!("Error creating timeseries: {:?}", error),
+                    }       
+                }
+
+                //use timeseries in function
+
+                let _function = julia_interface::call(
+                    &mut frame,
+                    &["Predicer", function],
+                    &[julia_value, timeseriesdata],
+                );
+
+            }
+            Err(error) => println!("Error creating timeseriesdata: {:?}", error),
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
 pub fn create_node_diffusion<'target, 'data>(frame: &mut frame::GcFrame<'target>, node_diffusion: HashMap<&String, &NodeDiffusion>) {
 
     frame.scope(|mut frame| {
@@ -461,6 +540,36 @@ pub fn create_node_diffusion<'target, 'data>(frame: &mut frame::GcFrame<'target>
                 &mut frame,
                 &["Predicer", "create_node_diffusion_tuple"],
                 &[nd_d1, nd_d2, nd_d3],
+            )
+            .into_jlrs_result();
+        }
+
+        Ok(())
+
+    }).unwrap();
+
+}
+
+pub fn create_node_delay<'target, 'data>(frame: &mut frame::GcFrame<'target>, node_delay: HashMap<&String, &NodeDelay>) {
+
+    frame.scope(|mut frame| {
+
+        //Node delay
+
+        for (_key, value) in &node_delay {
+            // An extended target provides a target for the result we want to return and a frame for
+            // temporary data.
+        
+            let nde_d1 = JuliaString::new(&mut frame, &value.node1).as_value();
+            let nde_d2 = JuliaString::new(&mut frame, &value.node2).as_value();
+            let nde_d3 = Value::new(&mut frame, value.delay);
+            let nde_d4 = Value::new(&mut frame, value.min_flow);
+            let nde_d5 = Value::new(&mut frame, value.max_flow);
+        
+            let _node_delay_tuple = julia_interface::call(
+                &mut frame,
+                &["Predicer", "create_node_delay_tuple"],
+                &[nde_d1, nde_d2, nde_d3, nde_d4, nde_d5],
             )
             .into_jlrs_result();
         }
@@ -582,7 +691,8 @@ pub fn _predicer(
 
                             if value.is_inflow {
 
-                                add_inflow(&mut frame, node, value);
+                                let function = "add_inflow_to_node";
+                                add_timeseries(&mut frame, node, &value.inflow.ts_data, function)
 
                             }
 
@@ -631,23 +741,7 @@ pub fn _predicer(
 
                 //node_delay
 
-                for (_key, value) in &node_delay {
-                    // An extended target provides a target for the result we want to return and a frame for
-                    // temporary data.
-
-                    let nde_d1 = JuliaString::new(&mut frame, &value.node1).as_value();
-                    let nde_d2 = JuliaString::new(&mut frame, &value.node2).as_value();
-                    let nde_d3 = Value::new(&mut frame, value.delay);
-                    let nde_d4 = Value::new(&mut frame, value.min_flow);
-                    let nde_d5 = Value::new(&mut frame, value.max_flow);
-
-                    let _node_delay_tuple = julia_interface::call(
-                        &mut frame,
-                        &["Predicer", "create_node_delay_tuple"],
-                        &[nde_d1, nde_d2, nde_d3, nde_d4, nde_d5],
-                    )
-                    .into_jlrs_result();
-                }
+                create_node_delay(&mut frame, node_delay);
 
                 let nde_args = [];
                 let _node_delay_tuples = julia_interface::call(
