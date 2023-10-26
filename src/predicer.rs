@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use jlrs::memory::target::frame;
 use jlrs::convert::into_julia;
 use jlrs::data::managed::union_all::UnionAll;
+use jlrs::data::managed::array;
 
 pub struct Process<'a> {
     pub name: String,
@@ -255,35 +256,6 @@ pub fn _ordered_dict(data: Vec<(String, f64)>) {
 }
 
 //voiko unrootata julia valuen sisemmästä scopesta? voiko siirtää scopesta toiseen, managed tai unmanaged
-
-fn make_vector<'target, 'data, V: Copy + into_julia::IntoJulia>(frame: &mut frame::GcFrame<'target>, values: &[V], processes: HashMap<&String, &Process>) -> ValueResult<'target, 'data, frame::GcFrame<'target>> {
-    let vector_type_generic = unsafe {
-        Module::main(&frame).global(&frame, "Vector").unwrap().as_managed().cast::<UnionAll>().unwrap()
-    };
-    let types = [
-        DataType::int64_type(frame).as_value(),
-    ];
-    let vector = unsafe {
-        let vector_type = vector_type_generic
-            .apply_types(&frame, types)
-            .unwrap()
-            .as_managed();
-        vector_type.call0(&frame).unwrap().as_managed()
-    };
-    let push = unsafe {
-        Module::base(&frame).function(&frame, "push!").expect("failed!").as_managed()
-    };
-    for x in values {
-        frame.scope(|mut frame| {
-            let value = Value::new(&mut frame, *x);
-            unsafe {
-                push.call2(&mut frame, vector, value)
-            }.unwrap();
-            Ok(())
-        }).unwrap();
-    }
-    Ok(vector)
-}
 
 pub fn add_topology<'target, 'data>(frame: &mut frame::GcFrame<'target>, process: Value<'_, '_>, topos: &Vec<Topology>) {
 
@@ -816,9 +788,89 @@ pub fn create_genconstraints<'target, 'data>(frame: &mut frame::GcFrame<'target>
 
 }
 
+fn make_vector<'target, 'data, V: Copy + into_julia::IntoJulia>(frame: &mut frame::GcFrame<'target>, values: &[V]) -> ValueResult<'target, 'data, frame::GcFrame<'target>> {
+    let vector_type_generic = unsafe {
+        Module::main(&frame).global(&frame, "Vector").unwrap().as_managed().cast::<UnionAll>().unwrap()
+    };
+    let types = [
+        DataType::int64_type(frame).as_value(),
+    ];
+    let vector = unsafe {
+        let vector_type = vector_type_generic
+            .apply_types(&frame, types)
+            .unwrap()
+            .as_managed();
+        vector_type.call0(&frame).unwrap().as_managed()
+    };
+    let push = unsafe {
+        Module::base(&frame).function(&frame, "push!").expect("failed!").as_managed()
+    };
+    for x in values {
+        frame.scope(|mut frame| {
+            let value = Value::new(&mut frame, *x);
+            unsafe {
+                push.call2(&mut frame, vector, value)
+            }.unwrap();
+            Ok(())
+        }).unwrap();
+    }
+    Ok(vector)
+}
 
+fn print_elements<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) {
+    let length = unsafe {
+        Module::base(&frame).function(&frame, "length").unwrap().as_managed()
+    };
+    let vector_length = unsafe {
+        length.call1(&frame, *vector).unwrap().as_managed().unbox::<i64>().unwrap()
+    };
+    let get_index = unsafe {
+        Module::base(&frame).function(&frame, "getindex").unwrap().as_managed()
+    };
+    for n in 1..vector_length+1 {
+        frame.scope(|mut frame| {
+            let index = Value::new(&mut frame, n);
+            let x = unsafe {
+                get_index.call2(&mut frame, *vector, index).into_jlrs_result().unwrap().unbox::<f64>().unwrap()
+            };
+            println!("{}", x);
+            Ok(())
+        }).unwrap();
+    }
+}
 
-pub fn _predicer(
+fn cast_to_array_and_print<'target, 'data>(&vector: &Value<'target, 'data>) {
+    let vector_as_array = vector.cast::<array::Array>().unwrap();
+    if vector_as_array.is_inline_array() {
+        let vector_data = unsafe {
+            vector_as_array.copy_inline_data().unwrap()
+        };
+        for n in 0..vector_data.dimensions().as_slice()[0] {
+            let x: &isize = vector_data.get((n,)).unwrap();
+            println!("{}", x);
+        }
+    }
+}
+
+pub fn run_test(){
+    let mut frame = StackFrame::new();
+    let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+    let mut julia = pending.instance(&mut frame);
+
+    julia.scope(|mut frame| {
+        let vector = make_vector(&mut frame, &[-5, -23]).unwrap();
+        print_elements(&mut frame, &vector);
+        cast_to_array_and_print(&vector);
+
+        let data = vec![23_isize, 50_isize];
+        let dimensions = (data.len(),);
+        let array = array::Array::from_vec(&mut frame, data, dimensions).unwrap().unwrap();
+        print_elements(&mut frame, &array.as_value());
+        Ok(())
+    }).unwrap();
+}
+
+pub fn predicer(
     contains_reserves: bool,
     contains_online: bool,
     contains_state: bool,
@@ -1084,6 +1136,34 @@ pub fn _predicer(
                             &["Predicer", "solve_hertta"], 
                             &[id_value]
                         );
+
+                        let _ts_column = Value::new(&mut frame, 0);
+                        let data_column = Value::new(&mut frame, 1);
+                        let name = "electricheater_electricitygrid_electricheater_s1";
+                        let column_name = JuliaString::new(&mut frame, name).as_value();
+
+                        match _generate_model_result {
+                            Ok(df) => {
+                                let df_vector = julia_interface::call(
+                                    &mut frame, 
+                                    &["Predicer", "extract_column_as_vector"], 
+                                    &[df, column_name]
+                                );
+
+                                match df_vector {
+                                    Ok(df) => {
+                                        
+                                        print_elements(&mut frame, &df);
+                                        
+                                    }
+                                    Err(error) => println!("Error solving model: {:?}", error),
+                                } 
+
+                                
+                            }
+                            Err(error) => println!("Error solving model: {:?}", error),
+                        } 
+
                     }
                     Err(error) => println!("Error solving model: {:?}", error),
                 }                

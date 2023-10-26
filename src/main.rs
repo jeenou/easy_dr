@@ -615,7 +615,7 @@ pub fn run_predicer() {
     _genconstraints.insert(&_c_interiorair_down.name, &_c_interiorair_down);
     
      
-    predicer::_predicer(
+    predicer::predicer(
         false,
         false,
         true,
@@ -639,6 +639,8 @@ pub fn run_predicer() {
 fn main() {
 
     run_predicer();
+
+    //predicer::run_test();
 
 
     /*
