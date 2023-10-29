@@ -169,6 +169,7 @@ pub fn _ordered_dict(data: Vec<(String, f64)>) {
     let mut julia = pending.instance(&mut frame);
     // Include some custom code defined in MyModule.jl.
     // This is safe because the included code doesn't do any strange things.
+
     unsafe {
         julia
             .scope(|mut frame| {
@@ -839,6 +840,75 @@ fn print_elements<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &
     }
 }
 
+fn combine_vectors(solution_vector: &mut Vec<(String, f64)>, ts_vector: Vec<String>, data_vector: Vec<f64>) {
+    // Clear the current contents
+    solution_vector.clear();
+
+    // Assuming ts_vector and data_vector are of the same length
+    for (ts, data) in ts_vector.into_iter().zip(data_vector.into_iter()) {
+        solution_vector.push((ts, data));
+    }
+}
+
+fn make_rust_vector_f64<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) -> Vec<f64> {
+    let length = unsafe {
+        Module::base(&frame).function(&frame, "length").unwrap().as_managed()
+    };
+    let vector_length = unsafe {
+        length.call1(&frame, *vector).unwrap().as_managed().unbox::<i64>().unwrap()
+    };
+    let get_index = unsafe {
+        Module::base(&frame).function(&frame, "getindex").unwrap().as_managed()
+    };
+
+    let mut rust_vector: Vec<f64> = Vec::new();
+
+    for n in 1..vector_length + 1 {
+        frame.scope(|mut frame| {
+            let index = Value::new(&mut frame, n);
+            let x = unsafe {
+                get_index.call2(&mut frame, *vector, index).into_jlrs_result().unwrap().unbox::<f64>().unwrap()
+            };
+            rust_vector.push(x);
+            Ok(())
+        }).unwrap();
+    }
+
+    return rust_vector
+}
+
+fn make_rust_vector_string<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) -> Vec<String> {
+    let length = unsafe {
+        Module::base(&frame).function(&frame, "length").unwrap().as_managed()
+    };
+    let vector_length = unsafe {
+        length.call1(&frame, *vector).unwrap().as_managed().unbox::<i64>().unwrap()
+    };
+    let get_index = unsafe {
+        Module::base(&frame).function(&frame, "getindex").unwrap().as_managed()
+    };
+
+    let mut rust_vector: Vec<String> = Vec::new();
+
+    for n in 1..vector_length + 1 {
+        frame.scope(|mut frame| {
+            let index = Value::new(&mut frame, n);
+            let x = unsafe {
+                get_index.call2(&mut frame, *vector, index).into_jlrs_result().unwrap().unbox::<String>().unwrap()
+            };
+            match x {
+                Ok(s) => {
+                    rust_vector.push(s);
+                }
+                Err(error) => println!("Error converting to string: {:?}", error),
+            }
+            Ok(())
+        }).unwrap();
+    }
+
+    return rust_vector
+}
+
 fn cast_to_array_and_print<'target, 'data>(&vector: &Value<'target, 'data>) {
     let vector_as_array = vector.cast::<array::Array>().unwrap();
     if vector_as_array.is_inline_array() {
@@ -870,6 +940,18 @@ pub fn run_test(){
     }).unwrap();
 }
 
+fn print_vector<T: std::fmt::Display>(vec: &Vec<T>) {
+    for item in vec.iter() {
+        println!("{}", item);
+    }
+}
+
+fn print_tuple_vector(v: &Vec<(String, f64)>) {
+    for (name, value) in v {
+        println!("{}: {}", name, value);
+    }
+}
+
 pub fn predicer(
     contains_reserves: bool,
     contains_online: bool,
@@ -886,10 +968,12 @@ pub fn predicer(
     node_diffusion: HashMap<&String, &NodeDiffusion>,
     node_delay: HashMap<&String, &NodeDelay>,
     predicer_dir: &str,
-) {
+) -> Vec<(String, f64)> {
     let mut frame = StackFrame::new();
     let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
     let mut julia = pending.instance(&mut frame);
+
+    let mut solution_vector: Vec<(String, f64)> = Vec::new();
 
     unsafe {
         julia
@@ -1137,27 +1221,49 @@ pub fn predicer(
                             &[id_value]
                         );
 
-                        let _ts_column = Value::new(&mut frame, 0);
-                        let data_column = Value::new(&mut frame, 1);
-                        let name = "electricheater_electricitygrid_electricheater_s1";
-                        let column_name = JuliaString::new(&mut frame, name).as_value();
+                        let ts_column = "t";
+                        let ts_column_name = JuliaString::new(&mut frame, ts_column).as_value();
+
+                        let data_column = "electricheater_electricitygrid_electricheater_s1";
+                        let data_column_name = JuliaString::new(&mut frame, data_column).as_value();
 
                         match _generate_model_result {
                             Ok(df) => {
-                                let df_vector = julia_interface::call(
+
+                                let mut ts_vector: Vec<String> = Vec::new();
+                                let mut data_vector: Vec<f64> = Vec::new();
+
+                                let ts_vector_function = julia_interface::call(
                                     &mut frame, 
                                     &["Predicer", "extract_column_as_vector"], 
-                                    &[df, column_name]
+                                    &[df, ts_column_name]
                                 );
 
-                                match df_vector {
+                                match ts_vector_function {
                                     Ok(df) => {
                                         
-                                        print_elements(&mut frame, &df);
+                                        ts_vector = make_rust_vector_string(&mut frame, &df);
                                         
                                     }
                                     Err(error) => println!("Error solving model: {:?}", error),
-                                } 
+                                }
+
+                                let df_vector_function = julia_interface::call(
+                                    &mut frame, 
+                                    &["Predicer", "extract_column_as_vector"], 
+                                    &[df, data_column_name]
+                                );
+
+                                match df_vector_function {
+                                    Ok(df) => {
+                                        
+                                        data_vector = make_rust_vector_f64(&mut frame, &df);
+                                        
+                                    }
+                                    Err(error) => println!("Error solving model: {:?}", error),
+                                }
+
+                                combine_vectors(&mut solution_vector, ts_vector, data_vector);
 
                                 
                             }
@@ -1169,9 +1275,14 @@ pub fn predicer(
                 }                
 
                 Ok(())
+
             })
             .expect("result is an error");
     }
+
+    solution_vector
+
+
 }
 
 

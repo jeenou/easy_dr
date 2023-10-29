@@ -29,7 +29,7 @@ pub fn add_time_serie(ts_data_vec: &mut Vec<predicer::TimeSeries>, time_series: 
 
 }
 
-pub fn run_predicer() {
+pub fn run_predicer() -> Vec<(String, f64)> {
 
     let args: Vec<String> = env::args().collect();
     let predicer_dir = args
@@ -613,9 +613,11 @@ pub fn run_predicer() {
 
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
     _genconstraints.insert(&_c_interiorair_down.name, &_c_interiorair_down);
+
+    let mut solution: Vec<(String, f64)> = Vec::new();
     
      
-    predicer::predicer(
+    solution = predicer::predicer(
         false,
         false,
         true,
@@ -632,13 +634,23 @@ pub fn run_predicer() {
         _node_delay,
         predicer_dir,
     );
+
+    return solution
     
 
 }
 
+fn print_tuple_vector(vec: &Vec<(String, f64)>) {
+    for (s, num) in vec {
+        println!("{}: {}", s, num);
+    }
+}
+
 fn main() {
 
-    run_predicer();
+    let mut solution: Vec<(String, f64)> = run_predicer();
+
+    print_tuple_vector(&solution);
 
     //predicer::run_test();
 
