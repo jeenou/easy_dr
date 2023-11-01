@@ -9,7 +9,6 @@ edition = "2021"
 calamine = "0.19.1"
 fs = "0.0.5"
 pathbuf = "0.3.1"
-reqwest = "0.11.14"
 thread = "0.1.0"
 umya-spreadsheet = "0.8.7"
 jlrs = { version = "0.19", features = ["sync-rt", "julia-1-8"] }
@@ -17,3 +16,9 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 csv = "1.2.1"
 indexmap = "1.9.3"
 ordered-float = "3.7.0"
+warp = "0.3"
+reqwest = { version = "0.11.9", features = ["blocking", "json"] } #reqwest = "0.11"
+serde_yaml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+time = "0.3.30"
