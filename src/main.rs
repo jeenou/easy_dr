@@ -773,16 +773,6 @@ async fn make_post_request_light(url: &str, entity_id: &str, token: &str, bright
     Ok(())
 }
 
-// Function to execute a Julia script.
-fn execute_julia_script() {
-    let output = Command::new("julia") // "/usr/local/julia/bin/julia"
-        .arg("/app/hello_world.jl") // Path to Julia script
-        .output()
-        .expect("Failed to execute Julia script.");
-
-    println!("Julia output: {}", String::from_utf8_lossy(&output.stdout));
-}
-
 fn print_f64_vector(vector: &Vec<f64>) {
     for value in vector.iter() {
         println!("{}", value);
@@ -792,9 +782,12 @@ fn print_f64_vector(vector: &Vec<f64>) {
 #[tokio::main]
 async fn main() {
     // Uncomment and use the following line for checking directory contents
+
+    
     print_directory_contents("/app");
-	print_directory_contents("/usr/local/julia");
 	print_directory_contents("/usr/local/bin");
+
+    //Tarkista missä options.jsonin pitäisi olla
 	
     // Define the path to the options.json file
     let options_path = "/data/options.json";
@@ -862,16 +855,15 @@ async fn main() {
 	
     // Print a message indicating that the server is starting
     println!("Server started at {}", ip_address);
-
-    // Execute the Julia script
-    execute_julia_script();
+    
     let vector: Vec<(String, f64)> = run_predicer();
-    let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value).collect();
+    let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
     print_f64_vector(&brightness_values);
+
+    
 
     // Make a test POST call to the Home Assistant User Interface.
     println!("Make test POST call to the Home Assistant User Interface:");
-    let url_hass = "http://homeassistant.local:8123/api/services/persistent_notification/create";
     let url = "http://homeassistant.local:8123/api/services/light/turn_on";
     let entity_id = "light.katto1";
     
@@ -887,4 +879,5 @@ async fn main() {
 
     // Combine filters and start the warp server
     warp::serve(my_route).run(ip_address).await;
+    
 }
