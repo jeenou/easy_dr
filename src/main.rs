@@ -784,13 +784,13 @@ async fn main() {
     // Uncomment and use the following line for checking directory contents
 
     
-    print_directory_contents("/app");
-	print_directory_contents("/usr/local/bin");
+    //print_directory_contents("/app");
+	//print_directory_contents("/usr/local/bin");
 
     //Tarkista missä options.jsonin pitäisi olla
 	
     // Define the path to the options.json file
-    let options_path = "/data/options.json";
+    let options_path = "src/options.json";
 
     // Read the options.json file as a string
     let options_str = match fs::read_to_string(options_path) {
@@ -835,6 +835,8 @@ async fn main() {
     println!("listen_ip: {}", options.listen_ip);
     println!("port: {}", options.port);
     println!("hass_token: {}", masked_token);
+
+    
 	
     // Combine IP address and port into a single string
     let ip_port = format!("{}:{}", listen_ip, port);
@@ -856,7 +858,19 @@ async fn main() {
     // Print a message indicating that the server is starting
     println!("Server started at {}", ip_address);
     
-    let vector: Vec<(String, f64)> = run_predicer();
+    //let vector: Vec<(String, f64)> = run_predicer();
+    let vector: Vec<(String, f64)> = vec![
+        ("FirstValue".to_string(), 1.0),
+        ("SecondValue".to_string(), 2.0),
+        ("ThirdValue".to_string(), 3.0),
+        ("ThirdValue".to_string(), 4.0),
+        ("ThirdValue".to_string(), 2.0),
+        ("ThirdValue".to_string(), 1.0),
+        ("ThirdValue".to_string(), 2.0),
+        ("ThirdValue".to_string(), 3.0),
+        ("ThirdValue".to_string(), 2.0),
+        ("ThirdValue".to_string(), 1.0),
+    ];
     let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
     print_f64_vector(&brightness_values);
 
