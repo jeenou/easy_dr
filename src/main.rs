@@ -1,11 +1,8 @@
 use std::collections::HashMap;
 use std::env;
-use std::sync::mpsc::Sender;
 mod predicer;
 use hertta::julia_interface;
-use hertta::main_loop;
-use std::process::Command;
-use warp::{Filter};
+use warp::Filter;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use serde_json;
@@ -13,12 +10,6 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
 use std::fs;
 use tokio::time::{self, Duration};
-
-pub fn start_sending(tx: Sender<main_loop::_Task>) {
-    tx.send(main_loop::_Task::StartProcess).unwrap();
-    tx.send(main_loop::_Task::QuitProcess).unwrap();
-    tx.send(main_loop::_Task::StartProcess).unwrap();
-}
 
 pub fn create_time_point(string: String, number: f64) -> (String, f64) {
 
@@ -623,10 +614,10 @@ pub fn run_predicer() -> Vec<(String, f64)> {
     _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
     _genconstraints.insert(&_c_interiorair_down.name, &_c_interiorair_down);
 
-    let mut solution: Vec<(String, f64)> = Vec::new();
+    let mut _solution: Vec<(String, f64)> = Vec::new();
     
      
-    solution = predicer::predicer(
+    _solution = predicer::predicer(
         false,
         false,
         true,
@@ -644,12 +635,12 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         predicer_dir,
     );
 
-    return solution
+    return _solution
     
 
 }
 
-fn print_tuple_vector(vec: &Vec<(String, f64)>) {
+fn _print_tuple_vector(vec: &Vec<(String, f64)>) {
     for (s, num) in vec {
         println!("{}: {}", s, num);
     }
@@ -678,32 +669,6 @@ struct Options {
     listen_ip: String,
     port: String,
     hass_token: String,
-}
-
-// Function to read and print the contents of a directory in the server.
-fn print_directory_contents(dir_path: &str) {
-    match fs::read_dir(dir_path) {
-        Ok(entries) => {
-            println!("Contents of directory '{}':", dir_path);
-            for entry in entries {
-                match entry {
-                    Ok(dir_entry) => {
-                        // Get the file name as a string
-                        if let Some(file_name) = dir_entry.file_name().to_str() {
-                            // Check if it's a file or a directory
-                            if dir_entry.file_type().map_or(false, |ft| ft.is_dir()) {
-                                println!("Directory: {}", file_name);
-                            } else {
-                                println!("File: {}", file_name);
-                            }
-                        }
-                    }
-                    Err(err) => eprintln!("Error reading directory entry: {}", err),
-                }
-            }
-        }
-        Err(err) => eprintln!("Error reading directory: {}", err),
-    }
 }
 
 async fn _make_post_request(url: &str, data: &str, token: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -790,7 +755,7 @@ async fn main() {
     //Tarkista missä options.jsonin pitäisi olla
 	
     // Define the path to the options.json file
-    let options_path = "src/options.json";
+    let options_path = "/data/options.json";
 
     // Read the options.json file as a string
     let options_str = match fs::read_to_string(options_path) {
@@ -858,19 +823,8 @@ async fn main() {
     // Print a message indicating that the server is starting
     println!("Server started at {}", ip_address);
     
-    //let vector: Vec<(String, f64)> = run_predicer();
-    let vector: Vec<(String, f64)> = vec![
-        ("FirstValue".to_string(), 1.0),
-        ("SecondValue".to_string(), 2.0),
-        ("ThirdValue".to_string(), 3.0),
-        ("ThirdValue".to_string(), 4.0),
-        ("ThirdValue".to_string(), 2.0),
-        ("ThirdValue".to_string(), 1.0),
-        ("ThirdValue".to_string(), 2.0),
-        ("ThirdValue".to_string(), 3.0),
-        ("ThirdValue".to_string(), 2.0),
-        ("ThirdValue".to_string(), 1.0),
-    ];
+    let vector: Vec<(String, f64)> = run_predicer();
+
     let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
     print_f64_vector(&brightness_values);
 

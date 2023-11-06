@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use jlrs::memory::target::frame;
 use jlrs::convert::into_julia;
 use jlrs::data::managed::union_all::UnionAll;
-use jlrs::data::managed::array;
 
 pub struct Process<'a> {
     pub name: String,
@@ -153,15 +152,6 @@ pub struct GenConstraint<'a> {
     pub constant: &'a TimeSeriesData,
 }
 
-/*
-processes::OrderedDict{String, Process}
-nodes::OrderedDict{String, Node}
-markets::OrderedDict{String, Market}
-scenarios::OrderedDict{String, Float64}
-reserve_type::OrderedDict{String, Float64}
-risk::OrderedDict{String, Float64}
-gen_constraints::OrderedDict{String, GenConstraint}
-*/
 
 pub fn _ordered_dict(data: Vec<(String, f64)>) {
     let mut frame = StackFrame::new();
@@ -789,7 +779,7 @@ pub fn create_genconstraints<'target, 'data>(frame: &mut frame::GcFrame<'target>
 
 }
 
-fn make_vector<'target, 'data, V: Copy + into_julia::IntoJulia>(frame: &mut frame::GcFrame<'target>, values: &[V]) -> ValueResult<'target, 'data, frame::GcFrame<'target>> {
+fn _make_vector<'target, 'data, V: Copy + into_julia::IntoJulia>(frame: &mut frame::GcFrame<'target>, values: &[V]) -> ValueResult<'target, 'data, frame::GcFrame<'target>> {
     let vector_type_generic = unsafe {
         Module::main(&frame).global(&frame, "Vector").unwrap().as_managed().cast::<UnionAll>().unwrap()
     };
@@ -816,28 +806,6 @@ fn make_vector<'target, 'data, V: Copy + into_julia::IntoJulia>(frame: &mut fram
         }).unwrap();
     }
     Ok(vector)
-}
-
-fn print_elements<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) {
-    let length = unsafe {
-        Module::base(&frame).function(&frame, "length").unwrap().as_managed()
-    };
-    let vector_length = unsafe {
-        length.call1(&frame, *vector).unwrap().as_managed().unbox::<i64>().unwrap()
-    };
-    let get_index = unsafe {
-        Module::base(&frame).function(&frame, "getindex").unwrap().as_managed()
-    };
-    for n in 1..vector_length+1 {
-        frame.scope(|mut frame| {
-            let index = Value::new(&mut frame, n);
-            let x = unsafe {
-                get_index.call2(&mut frame, *vector, index).into_jlrs_result().unwrap().unbox::<f64>().unwrap()
-            };
-            println!("{}", x);
-            Ok(())
-        }).unwrap();
-    }
 }
 
 fn combine_vectors(solution_vector: &mut Vec<(String, f64)>, ts_vector: Vec<String>, data_vector: Vec<f64>) {
@@ -907,49 +875,6 @@ fn make_rust_vector_string<'target, 'data>(frame: &mut frame::GcFrame<'target>, 
     }
 
     return rust_vector
-}
-
-fn cast_to_array_and_print<'target, 'data>(&vector: &Value<'target, 'data>) {
-    let vector_as_array = vector.cast::<array::Array>().unwrap();
-    if vector_as_array.is_inline_array() {
-        let vector_data = unsafe {
-            vector_as_array.copy_inline_data().unwrap()
-        };
-        for n in 0..vector_data.dimensions().as_slice()[0] {
-            let x: &isize = vector_data.get((n,)).unwrap();
-            println!("{}", x);
-        }
-    }
-}
-
-pub fn run_test(){
-    let mut frame = StackFrame::new();
-    let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
-    let mut julia = pending.instance(&mut frame);
-
-    julia.scope(|mut frame| {
-        let vector = make_vector(&mut frame, &[-5, -23]).unwrap();
-        print_elements(&mut frame, &vector);
-        cast_to_array_and_print(&vector);
-
-        let data = vec![23_isize, 50_isize];
-        let dimensions = (data.len(),);
-        let array = array::Array::from_vec(&mut frame, data, dimensions).unwrap().unwrap();
-        print_elements(&mut frame, &array.as_value());
-        Ok(())
-    }).unwrap();
-}
-
-fn print_vector<T: std::fmt::Display>(vec: &Vec<T>) {
-    for item in vec.iter() {
-        println!("{}", item);
-    }
-}
-
-fn print_tuple_vector(v: &Vec<(String, f64)>) {
-    for (name, value) in v {
-        println!("{}: {}", name, value);
-    }
 }
 
 pub fn predicer(
@@ -1285,102 +1210,3 @@ pub fn predicer(
 
 }
 
-
-
-pub fn _test(da1: i64, da2: i64, da3: i64, da4: i64, data: Vec<(String, f64)>) {
-    let mut frame = StackFrame::new();
-    let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
-    let mut julia = pending.instance(&mut frame);
-    // Include some custom code defined in MyModule.jl.
-    // This is safe because the included code doesn't do any strange things.
-    unsafe {
-        julia
-            .scope(|mut frame| {
-                let predicer_dir = JuliaString::new(
-                    &mut frame,
-                    "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer",
-                )
-                .as_value();
-                let _ = Module::main(&frame)
-                    .function(&frame, "cd")?
-                    .as_managed()
-                    .call1(&mut frame, predicer_dir)
-                    .expect("cd to Predicer dir failed");
-                Ok(())
-            })
-            .expect("error when cding to Predicer dir");
-        julia
-            .scope(|mut frame| {
-                let predicer_dir = JuliaString::new(
-                    &mut frame,
-                    "C:\\Users\\enessi\\Documents\\easy_dr\\Predicer",
-                )
-                .as_value();
-                let _ = Value::eval_string(&mut frame, "using Pkg");
-                let _ = Module::main(&frame)
-                    .submodule(&frame, "Pkg")?
-                    .as_managed()
-                    .function(&frame, "activate")?
-                    .as_managed()
-                    .call1(&mut frame, predicer_dir)
-                    .expect("activation failed");
-                Ok(())
-            })
-            .expect("error when activating Julia environment");
-        julia
-            .scope(|mut frame| {
-                Module::main(&frame)
-                    .submodule(&frame, "Pkg")?
-                    .as_managed()
-                    .function(&frame, "instantiate")?
-                    .as_managed()
-                    .call0(&mut frame)
-                    .expect("instatiation failed");
-                Ok(())
-            })
-            .expect("error when instantiating Julia environment");
-        julia
-            .scope(|mut frame| {
-                let wd = Module::main(&frame)
-                    .function(&frame, "pwd")?
-                    .as_managed()
-                    .call0(&mut frame)
-                    .into_jlrs_result()?
-                    .unbox::<String>()
-                    .expect("pwd error");
-                println!("working directory {}", wd.expect("not ok"));
-                Ok(())
-            })
-            .expect("error error on the wall");
-        let path = PathBuf::from("src/structures.jl");
-        julia.include(path).expect("Could not include file1");
-    }
-
-    // An extended target provides a target for the result we want to return and a frame for
-    // temporary data.
-    let _x = julia
-        .scope(|mut frame| {
-            let d1 = Value::new(&mut frame, da1);
-            let d2 = Value::new(&mut frame, da2);
-            let d3 = Value::new(&mut frame, da3);
-            let d4 = Value::new(&mut frame, da4);
-
-            //let module = "Predicer";
-            let _result = julia_interface::call(
-                &mut frame,
-                &["Predicer", "print_message"],
-                &[d1, d2, d3, d4],
-            )
-            .into_jlrs_result();
-
-            let _result2 =
-                julia_interface::to_ordered_dict(frame.as_extended_target(), &data).unwrap();
-
-            let _result3 =
-                julia_interface::call(&mut frame, &["Predicer", "print_ordered_dict"], &[_result2])
-                    .into_jlrs_result();
-
-            Ok(())
-        })
-        .expect("result is an error");
-}
