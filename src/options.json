@@ -3,5 +3,6 @@
     "port": "8001",
     "floor_area": 53,
     "stories": 1,
-    "insulation_u_value": 0.1
+    "insulation_u_value": 0.1,
+    "hass_token": "239058209U2390TU923T90259028902385902385923850293"
   }

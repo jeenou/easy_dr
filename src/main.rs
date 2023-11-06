@@ -9,7 +9,6 @@ use serde_json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
 use std::fs;
-use tokio::time::{self, Duration};
 
 pub fn create_time_point(string: String, number: f64) -> (String, f64) {
 
@@ -755,7 +754,8 @@ async fn main() {
     //Tarkista missä options.jsonin pitäisi olla
 	
     // Define the path to the options.json file
-    let options_path = "/data/options.json";
+    //let options_path = "/data/options.json";
+    let options_path = "./src/options.json";
 
     // Read the options.json file as a string
     let options_str = match fs::read_to_string(options_path) {
@@ -827,8 +827,6 @@ async fn main() {
 
     let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
     print_f64_vector(&brightness_values);
-
-    
 
     // Make a test POST call to the Home Assistant User Interface.
     println!("Make test POST call to the Home Assistant User Interface:");
