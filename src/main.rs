@@ -9,6 +9,8 @@ use serde_json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
 use std::fs;
+use tokio::time;
+
 
 pub fn create_time_point(string: String, number: f64) -> (String, f64) {
 
@@ -840,7 +842,7 @@ async fn main() {
         }
 
         // Wait for 10 seconds before sending the next request
-        time::sleep(Duration::from_secs(5)).await;
+        time::sleep(time::Duration::from_secs(5)).await;
     }
 
     // Combine filters and start the warp server
