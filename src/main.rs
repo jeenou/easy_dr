@@ -9,7 +9,7 @@ use serde_json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
 use std::fs;
-use tokio::time;
+use tokio::time::{self, Duration};
 
 
 pub fn create_time_point(string: String, number: f64) -> (String, f64) {
@@ -756,8 +756,8 @@ async fn main() {
     //Tarkista missä options.jsonin pitäisi olla
 	
     // Define the path to the options.json file
-    //let options_path = "/data/options.json";
-    let options_path = "./src/options.json";
+    let options_path = "/data/options.json";
+    //let options_path = "./src/options.json";
 
     // Read the options.json file as a string
     let options_str = match fs::read_to_string(options_path) {
@@ -842,7 +842,7 @@ async fn main() {
         }
 
         // Wait for 10 seconds before sending the next request
-        time::sleep(time::Duration::from_secs(5)).await;
+        time::sleep(Duration::from_secs(5)).await;
     }
 
     // Combine filters and start the warp server
