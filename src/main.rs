@@ -757,7 +757,6 @@ async fn main() {
 	
     // Define the path to the options.json file
     let options_path = "/data/options.json";
-    //let options_path = "./src/options.json";
 
     // Read the options.json file as a string
     let options_str = match fs::read_to_string(options_path) {
