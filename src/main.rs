@@ -786,7 +786,7 @@ async fn main() {
 	let hass_token = &options.hass_token;
 	
 	// Partially mask the hass token for printing.
-	let masked_token = if options.hass_token.len() > 4 {
+	let _masked_token = if options.hass_token.len() > 4 {
 		let last_part = &options.hass_token[options.hass_token.len() - 4..];
 		let masked_part = "*".repeat(options.hass_token.len() - 4);
 		format!("{}{}", masked_part, last_part)
