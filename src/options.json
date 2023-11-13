@@ -1,7 +1,7 @@
 {
     "listen_ip": "0.0.0.0",
     "port": "8001",
-    "hass_token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjYTk4NGIyMDQzZTU0NGRiYTg5ODVmZjg3MDI2NmRmMyIsImlhdCI6MTY5OTkwMTQ1NiwiZXhwIjoyMDE1MjYxNDU2fQ.R5nyFWKf_yV_X_4-r5PiZpEbHE3C0Zxv0r5RjmZF9O0",
+    "hass_token": "Bearer etjeotjeogjeg",
     "floor_area": 53,
     "stories": 1,
     "insulation_u_value": 0.1

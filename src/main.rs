@@ -824,7 +824,7 @@ async fn main() {
 
     // Make a test POST call to the Home Assistant User Interface.
     println!("Make test POST call to the Home Assistant User Interface:");
-    let url = "http://homeassistant.local:8123/api/services/light/turn_on";
+    let url = "http://192.168.1.171:8123/api/services/light/turn_on";
     let entity_id = "light.katto1";
     
     
