@@ -10,6 +10,7 @@ use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
 use std::fs;
 use tokio::time::{self, Duration};
+use tokio::task;
 
 
 pub fn create_time_point(string: String, number: f64) -> (String, f64) {
@@ -745,6 +746,28 @@ fn print_f64_vector(vector: &Vec<f64>) {
     }
 }
 
+async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Rejection> {
+    let vector: Vec<(String, f64)> = run_predicer();
+
+    let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
+    print_f64_vector(&brightness_values);
+
+    let url = "http://192.168.1.171:8123/api/services/light/turn_on";
+    let entity_id = "light.katto1";
+    
+    for brightness in brightness_values {
+        if let Err(err) = make_post_request_light(url, entity_id, &hass_token, brightness).await {
+            eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
+        }
+
+        // Wait for 5 seconds before sending the next request
+        time::sleep(Duration::from_secs(5)).await;
+    }
+
+    // You can return some confirmation if needed
+    Ok(warp::reply::json(&"Logic executed successfully"))
+}
+
 #[tokio::main]
 async fn main() {
     // Uncomment and use the following line for checking directory contents
@@ -802,6 +825,28 @@ async fn main() {
 
     // Parse the combined string into a SocketAddr
     let ip_address: SocketAddr = ip_port.parse().unwrap();
+
+    let hass_token_clone = hass_token.clone();
+
+    let my_route = warp::path!("from_hass" / "post")
+    .and(warp::post())
+    .map(move || {
+        // Clone the token for the spawned task
+        let token = hass_token_clone.clone();
+        // Spawn a new asynchronous task
+        task::spawn(async move {
+            // Here you call your logic function that contains the code you want to run
+            if let Err(e) = _run_logic(token).await {
+                // Handle any errors that might occur
+                eprintln!("Error running logic: {:?}", e);
+            }
+        });
+
+        // Immediately respond to the POST request
+        warp::reply::json(&"Request received, logic is running")
+    });
+
+    /* 
 	
     // Define a filter for the specific path and POST method
     let my_route = warp::path!("from_hass" / "post")
@@ -813,6 +858,8 @@ async fn main() {
             // Handle the received data
             warp::reply::json(&data) // Echo the received data as JSON
         });
+
+    */
 	
     // Print a message indicating that the server is starting
     println!("Server started at {}", ip_address);
