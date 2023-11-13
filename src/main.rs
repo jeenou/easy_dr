@@ -757,6 +757,7 @@ async fn main() {
 	
     // Define the path to the options.json file
     let options_path = "/data/options.json";
+    //let options_path = "./src/options.json";
 
     // Read the options.json file as a string
     let options_str = match fs::read_to_string(options_path) {
@@ -793,14 +794,6 @@ async fn main() {
 		// If the token is too short, just print it as is
 		options.hass_token.clone()
 	};
-	
-    // Print the individual option variables
-    println!("floor_area: {}", options.floor_area);
-    println!("stories: {}", options.stories);
-    println!("insulation_u_value: {}", options.insulation_u_value);
-    println!("listen_ip: {}", options.listen_ip);
-    println!("port: {}", options.port);
-    println!("hass_token: {}", masked_token);
 
     
 	
