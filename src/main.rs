@@ -701,20 +701,26 @@ async fn make_post_request_light(url: &str, entity_id: &str, token: &str, bright
 }
 
 async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Rejection> {
+    println!("Starting logic execution...");
     let vector: Vec<(String, f64)> = run_predicer();
 
     let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
-    utilities::print_f64_vector(&brightness_values);
+
+    println!("Results obtained.");
 
     let url = "http://192.168.1.171:8123/api/services/light/turn_on";
     let entity_id = "light.katto1";
     
     for brightness in brightness_values {
+        println!("Setting brightness to: {}", brightness);
         if let Err(err) = make_post_request_light(url, entity_id, &hass_token, brightness).await {
             eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
+        } else {
+            println!("POST request successful for brightness: {}", brightness);
         }
 
         // Wait for 5 seconds before sending the next request
+        println!("Waiting for 5 seconds before next request...");
         time::sleep(Duration::from_secs(5)).await;
     }
 
