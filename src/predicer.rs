@@ -38,6 +38,12 @@ pub fn predicer(
                 julia_interface::call(&frame, &["Pkg", "instantiate"], &[]).unwrap();
                 Value::eval_string(&mut frame, "using Predicer").unwrap();
 
+                //Empty earlier data
+
+                let _empty_data =
+                    julia_interface::call(&mut frame, &["Predicer", "empty_data"], &[])
+                        .into_jlrs_result();
+
                 //Create processes
 
                 create_processes(&mut frame, &processes);
