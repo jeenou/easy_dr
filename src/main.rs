@@ -724,6 +724,8 @@ async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Reject
         time::sleep(Duration::from_secs(5)).await;
     }
 
+    println!("Completed.");
+
     // You can return some confirmation if needed
     Ok(warp::reply::json(&"Logic executed successfully"))
 }
