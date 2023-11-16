@@ -750,9 +750,6 @@ struct Options {
 #[tokio::main]
 async fn main() {
 
-
-    //Tarkista missä options.jsonin pitäisi olla
-
 	
     // Define the path to the options.json file
     let options_path = "/data/options.json";
@@ -823,11 +820,6 @@ async fn main() {
     // Print a message indicating that the server is starting
     
     println!("Server started at {}", ip_address);
-
-    // Make a test POST call to the Home Assistant User Interface.
-    println!("Make test POST call to the Home Assistant User Interface:");
-    let url = "http://192.168.1.171:8123/api/services/light/turn_on";
-    let entity_id = "light.katto1";
     
 
     // Combine filters and start the warp server

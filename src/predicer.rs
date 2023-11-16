@@ -4,7 +4,6 @@ use crate::input_data;
 use jlrs::prelude::*;
 use std::collections::HashMap;
 use jlrs::memory::target::frame;
-use std::sync::Once;
 
 pub fn predicer(
     contains_reserves: bool,
@@ -24,7 +23,8 @@ pub fn predicer(
     predicer_dir: &str,
 ) -> Vec<(String, f64)> {
     let mut frame = StackFrame::new();
-    let mut pending = julia_interface::initialize_julia();
+    //let mut pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+    let pending = julia_interface::initialize_julia();
     let mut julia = pending.instance(&mut frame);
 
     let mut solution_vector: Vec<(String, f64)> = Vec::new();

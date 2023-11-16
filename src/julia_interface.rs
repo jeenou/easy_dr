@@ -7,6 +7,9 @@ use jlrs::prelude::*;
 use jlrs::memory::target::frame;
 use std::sync::Once;
 
+static INIT: Once = Once::new();
+static mut PENDING: Option<PendingJulia> = None;
+
 fn prepare_callable<'target, 'data, T: Target<'target>>(
     target: T,
     function: &[&str],
@@ -117,11 +120,14 @@ where
     })
 }
 
-pub fn initialize_julia() -> PendingJulia {
+pub fn initialize_julia() -> &'static mut PendingJulia {
+    unsafe {
+        INIT.call_once(|| {
+            PENDING = Some(RuntimeBuilder::new().start().expect("Could not init Julia"));
+        });
 
-    let pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
-    return pending
-
+        PENDING.as_mut().expect("Julia runtime was not initialized")
+    }
 }
 
 pub fn make_rust_vector_f64<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) -> Vec<f64> {
