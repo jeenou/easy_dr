@@ -1,35 +1,22 @@
 use std::collections::HashMap;
 use std::env;
 mod predicer;
+mod utilities;
+mod input_data;
 use hertta::julia_interface;
-use warp::Filter;
-use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
-use serde_json;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
-use std::fs;
 use tokio::time::{self, Duration};
+use std::net::SocketAddr;
+use std::fs;
+use warp::Filter;
+use serde::{Deserialize, Serialize};
+use serde_json;
+use std::error::Error;
+use std::fmt;
+use warp::reject::Reject;
 use tokio::task;
 
-
-pub fn create_time_point(string: String, number: f64) -> (String, f64) {
-
-    return (string, number)
-
-}
-
-pub fn add_time_point(ts_vec: &mut Vec<(String, f64)>, time_point: (String, f64)) {
-
-    ts_vec.push(time_point);
-
-}
-
-pub fn add_time_serie(ts_data_vec: &mut Vec<predicer::TimeSeries>, time_series: predicer::TimeSeries) {
-
-    ts_data_vec.push(time_series);
-
-}
 
 pub fn run_predicer() -> Vec<(String, f64)> {
 
@@ -43,39 +30,36 @@ pub fn run_predicer() -> Vec<(String, f64)> {
     let mut series1: Vec<(String, f64)> = Vec::new();
     let mut series2: Vec<(String, f64)> = Vec::new();
 
-    let timepoint1 = create_time_point("Data1".to_string(), 0.0);
-    let timepoint2 = create_time_point("Data2".to_string(), 0.0);
+    let timepoint1 = input_data::create_time_point("Data1".to_string(), 0.0);
+    let timepoint2 = input_data::create_time_point("Data2".to_string(), 0.0);
 
-    add_time_point(&mut series1, timepoint1.clone());
-    add_time_point(&mut series1, timepoint2.clone());
-    add_time_point(&mut series2, timepoint1.clone());
-    add_time_point(&mut series2, timepoint2.clone());
+    input_data::add_time_point(&mut series1, timepoint1.clone());
+    input_data::add_time_point(&mut series1, timepoint2.clone());
+    input_data::add_time_point(&mut series2, timepoint1.clone());
+    input_data::add_time_point(&mut series2, timepoint2.clone());
 
-    let time_series1 = predicer::TimeSeries {
+    let time_series1 = input_data::TimeSeries {
         scenario: "Scenario1".to_string(),
         series: series1,
     };
 
-    let time_series2 = predicer::TimeSeries {
+    let time_series2 = input_data::TimeSeries {
         scenario: "Scenario2".to_string(),
         series: series2,
     };
 
     // Step 2: Create a Vec<TimeSeries> containing the created TimeSeries instances
-    let mut time_series_data_vec: Vec<predicer::TimeSeries> = Vec::new();
-    add_time_serie(&mut time_series_data_vec, time_series1);
-    add_time_serie(&mut time_series_data_vec, time_series2);
+    let mut time_series_data_vec: Vec<input_data::TimeSeries> = Vec::new();
+    input_data::add_time_serie(&mut time_series_data_vec, time_series1);
+    input_data::add_time_serie(&mut time_series_data_vec, time_series2);
 
 
     // Step 3: Create a new TimeSeriesData instance with the Vec<TimeSeries>
-    let time_series_data: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let time_series_data: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: time_series_data_vec,
     };
 
     //Outside temperatures (time series)
-
-    //let mut outside_timeseries_s1: Vec<(String, f64)> = Vec::new();
-    //let mut outside_timeseries_s2: Vec<(String, f64)> = Vec::new();
 
     //These outside temperatures come from HASS, we need a function that takes data from HASS and put that timeserie in to a vec
 
@@ -105,21 +89,21 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ("2022-04-20T09:00:00+00:00".to_string(), -2.0),
     ];
 
-    let outside_ts_s1 = predicer::TimeSeries {
+    let outside_ts_s1 = input_data::TimeSeries {
         scenario: "s1".to_string(),
         series: outside_timeseries_s1,
     };
 
-    let outside_ts_s2 = predicer::TimeSeries {
+    let outside_ts_s2 = input_data::TimeSeries {
         scenario: "s2".to_string(),
         series: outside_timeseries_s2,
     };
 
-    let mut outside_ts_vec: Vec<predicer::TimeSeries> = Vec::new();
-    add_time_serie(&mut outside_ts_vec, outside_ts_s1);
-    add_time_serie(&mut outside_ts_vec, outside_ts_s2);
+    let mut outside_ts_vec: Vec<input_data::TimeSeries> = Vec::new();
+    input_data::add_time_serie(&mut outside_ts_vec, outside_ts_s1);
+    input_data::add_time_serie(&mut outside_ts_vec, outside_ts_s2);
 
-    let outside_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let outside_ts: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: outside_ts_vec,
     };
 
@@ -151,19 +135,19 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ("2022-04-20T09:00:00+00:00".to_string(), 12.0),
     ];
 
-    let npe_ts_s1 = predicer::TimeSeries {
+    let npe_ts_s1 = input_data::TimeSeries {
         scenario: "s1".to_string(),
         series: npe_timeseries_s1,
     };
 
-    let npe_ts_s2 = predicer::TimeSeries {
+    let npe_ts_s2 = input_data::TimeSeries {
         scenario: "s2".to_string(),
         series: npe_timeseries_s2,
     };
 
-    let npe_ts_vec: Vec<predicer::TimeSeries> = vec![npe_ts_s1, npe_ts_s2];
+    let npe_ts_vec: Vec<input_data::TimeSeries> = vec![npe_ts_s1, npe_ts_s2];
 
-    let npe_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let npe_ts: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: npe_ts_vec,
     };
 
@@ -195,19 +179,19 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ("2022-04-20T09:00:00+00:00".to_string(), 13.2),
     ];
 
-    let npe_up_s1 = predicer::TimeSeries {
+    let npe_up_s1 = input_data::TimeSeries {
         scenario: "s1".to_string(),
         series: npe_up_prices_s1,
     };
 
-    let npe_up_s2 = predicer::TimeSeries {
+    let npe_up_s2 = input_data::TimeSeries {
         scenario: "s2".to_string(),
         series: npe_up_prices_s2,
     };
 
-    let npe_up_vec: Vec<predicer::TimeSeries> = vec![npe_up_s1, npe_up_s2];
+    let npe_up_vec: Vec<input_data::TimeSeries> = vec![npe_up_s1, npe_up_s2];
 
-    let npe_up_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let npe_up_ts: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: npe_up_vec,
     };
 
@@ -239,19 +223,19 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ("2022-04-20T09:00:00+00:00".to_string(), 10.8),
     ];
 
-    let npe_down_s1 = predicer::TimeSeries {
+    let npe_down_s1 = input_data::TimeSeries {
         scenario: "s1".to_string(),
         series: npe_down_prices_s1,
     };
 
-    let npe_down_s2 = predicer::TimeSeries {
+    let npe_down_s2 = input_data::TimeSeries {
         scenario: "s2".to_string(),
         series: npe_down_prices_s2,
     };
 
-    let npe_down_vec: Vec<predicer::TimeSeries> = vec![npe_down_s1, npe_down_s2];
+    let npe_down_vec: Vec<input_data::TimeSeries> = vec![npe_down_s1, npe_down_s2];
 
-    let npe_down_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let npe_down_ts: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: npe_down_vec,
     };
 
@@ -309,47 +293,47 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ("2022-04-20T09:00:00+00:00".to_string(), 292.15),
     ];
 
-    let interiorair_up_s1 = predicer::TimeSeries {
+    let interiorair_up_s1 = input_data::TimeSeries {
         scenario: "s1".to_string(),
         series: c_interiorair_up_s1, 
     };
 
-    let interiorair_up_s2 = predicer::TimeSeries {
+    let interiorair_up_s2 = input_data::TimeSeries {
         scenario: "s2".to_string(),
         series: c_interiorair_up_s2,
     };
 
-    let interiorair_down_s1 = predicer::TimeSeries {
+    let interiorair_down_s1 = input_data::TimeSeries {
         scenario: "s1".to_string(),
         series: c_interiorair_down_s1, 
     };
 
-    let interiorair_down_s2 = predicer::TimeSeries {
+    let interiorair_down_s2 = input_data::TimeSeries {
         scenario: "s2".to_string(),
         series: c_interiorair_down_s2,
     };
 
-    let gc_interiorair_up_vec: Vec<predicer::TimeSeries> = vec![interiorair_up_s1, interiorair_up_s2];
-    let gc_interiorair_down_vec: Vec<predicer::TimeSeries> = vec![interiorair_down_s1, interiorair_down_s2];
+    let gc_interiorair_up_vec: Vec<input_data::TimeSeries> = vec![interiorair_up_s1, interiorair_up_s2];
+    let gc_interiorair_down_vec: Vec<input_data::TimeSeries> = vec![interiorair_down_s1, interiorair_down_s2];
 
-    let interiorair_up_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let interiorair_up_ts: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: gc_interiorair_up_vec,
     };
 
-    let interiorair_down_ts: predicer::TimeSeriesData = predicer::TimeSeriesData {
+    let interiorair_down_ts: input_data::TimeSeriesData = input_data::TimeSeriesData {
         ts_data: gc_interiorair_down_vec,
     };
 
     //Creating node_diffusion
 
-    let diffusion_1 = predicer::NodeDiffusion {
+    let diffusion_1 = input_data::NodeDiffusion {
         name: String::from("diffusion_1"),
         node1: String::from("interiorair"),
         node2: String::from("buildingenvelope"),
         diff_coeff: 0.5,
     };
 
-    let diffusion_2 = predicer::NodeDiffusion {
+    let diffusion_2 = input_data::NodeDiffusion {
         name: String::from("diffusion_2"),
         node1: String::from("buildingenvelope"),
         node2: String::from("outside"),
@@ -358,7 +342,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     //Creating node_delay
 
-    let delay_1 = predicer::NodeDelay {
+    let delay_1 = input_data::NodeDelay {
         name: String::from("delay_1"),
         node1: String::from("dh1"),
         node2: String::from("dh2"),
@@ -367,9 +351,9 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         max_flow: 20.0,
     };
 
-    //Creating nodes
+    //Creating state
 
-    let interiorair_state = predicer::State {
+    let interiorair_state = input_data::State {
 
         in_max: 1.0e10,
         out_max: 1.0e10,
@@ -383,7 +367,9 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     };
 
-    let _interiorair = predicer::Node {
+    //Creating nodes
+
+    let _interiorair = input_data::Node {
         name: String::from("interiorair"),
         is_commodity: false,
         is_state: true,
@@ -395,7 +381,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         state: interiorair_state,
     };
 
-    let building_envelope_state = predicer::State {
+    let building_envelope_state = input_data::State {
 
         in_max: 1.0e10,
         out_max: 1.0e10,
@@ -409,8 +395,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     };
 
-
-    let _building_envelope_state = predicer::State {
+    let _building_envelope_state = input_data::State {
 
         in_max: 1.0e10,
         out_max: 1.0e10,
@@ -421,10 +406,9 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         is_temp: true,
         t_e_conversion: 1.0,
         residual_value: 0.0,
-
     };
 
-    let _building_envelope = predicer::Node {
+    let _building_envelope = input_data::Node {
         name: String::from("buildingenvelope"),
         is_commodity: false,
         is_state: true,
@@ -436,7 +420,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         state: building_envelope_state,
     };
 
-    let outside_state = predicer::State {
+    let outside_state = input_data::State {
 
         in_max: 1.0e10,
         out_max: 1.0e10,
@@ -450,7 +434,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     };
 
-    let _outside = predicer::Node {
+    let _outside = input_data::Node {
         name: String::from("outside"),
         is_commodity: false,
         is_state: true,
@@ -462,9 +446,9 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         state: outside_state,
     };
 
-    let empty_state: predicer::State = Default::default();
+    let empty_state: input_data::State = Default::default();
 
-    let _electricitygrid = predicer::Node {
+    let _electricitygrid = input_data::Node {
         name: String::from("electricitygrid"),
         is_commodity: false,
         is_state: false,
@@ -476,14 +460,14 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         state: empty_state,
     };
 
-    let _node_history_1 = predicer::NodeHistory {
+    let _node_history_1 = input_data::NodeHistory {
         node: String::from("electricitygrid"),
         steps: &time_series_data,
     };
 
-    let mut _nodes: HashMap<&String, &predicer::Node> = HashMap::new();
-    let mut _node_diffusion: HashMap<&String, &predicer::NodeDiffusion> = HashMap::new();
-    let mut _node_delay: HashMap<&String, &predicer::NodeDelay> = HashMap::new();
+    let mut _nodes: HashMap<&String, &input_data::Node> = HashMap::new();
+    let mut _node_diffusion: HashMap<&String, &input_data::NodeDiffusion> = HashMap::new();
+    let mut _node_delay: HashMap<&String, &input_data::NodeDelay> = HashMap::new();
 
     _nodes.insert(&_interiorair.name, &_interiorair);
     _nodes.insert(&_building_envelope.name, &_building_envelope);
@@ -495,11 +479,11 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     _node_delay.insert(&delay_1.name, &delay_1);
 
-    let mut _processes: HashMap<&String, &predicer::Process> = HashMap::new();
+    let mut _processes: HashMap<&String, &input_data::Process> = HashMap::new();
 
     //Creating topology for processes
 
-    let topology1 = predicer::Topology {
+    let topology1 = input_data::Topology {
         source: String::from("electricitygrid"),
         sink: String::from("electricheater"),
         capacity: 7.5,
@@ -508,7 +492,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ramp_down: 1.0,
     };
 
-    let topology2 = predicer::Topology {
+    let topology2 = input_data::Topology {
         source: String::from("electricheater"),
         sink: String::from("interiorair"),
         capacity: 7.5,
@@ -517,13 +501,13 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         ramp_down: 1.0,
     };
 
-    let topo_vec: Vec<predicer::Topology> = vec![topology1, topology2];
+    let topo_vec: Vec<input_data::Topology> = vec![topology1, topology2];
 
     //Creating process
 
     let process_vec: Vec<String> = vec![("eff_ops".to_string())];
 
-    let _electricheater1 = predicer::Process {
+    let _electricheater1 = input_data::Process {
         name: String::from("electricheater"),
         group: String::from("p1"),
         delay: 0.0,
@@ -547,11 +531,11 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     _processes.insert(&_electricheater1.name, &_electricheater1);
 
-    let mut _markets: HashMap<&String, &predicer::Market> = HashMap::new();
-    let mut _groups: HashMap<&String, &predicer::Group> = HashMap::new();
-    let mut _genconstraints: HashMap<&String, &predicer::GenConstraint> = HashMap::new();
+    let mut _markets: HashMap<&String, &input_data::Market> = HashMap::new();
+    let mut _groups: HashMap<&String, &input_data::Group> = HashMap::new();
+    let mut _genconstraints: HashMap<&String, &input_data::GenConstraint> = HashMap::new();
 
-    let _npe = predicer::Market {
+    let _npe = input_data::Market {
         name: String::from("npe"),
         m_type: String::from("energy"),
         node: String::from("electricitygrid"),
@@ -571,7 +555,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     _markets.insert(&_npe.name, &_npe);
 
-    let _p1 = predicer::Group {
+    let _p1 = input_data::Group {
         name: String::from("p1"),
         g_type: String::from("process"),
         entity: String::from("electricheater"),
@@ -579,23 +563,23 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
     _groups.insert(&_p1.name, &_p1);
 
-    let interiorair_up_cf = predicer::ConFactor {
+    let interiorair_up_cf = input_data::ConFactor {
         var_type: String::from("state"),
         flow: (String::from("interiorair"), String::from("")),
         data: &interiorair_up_ts,
     };
 
-    let interiorair_up_cf_vec: Vec<predicer::ConFactor> = vec![interiorair_up_cf];
+    let interiorair_up_cf_vec: Vec<input_data::ConFactor> = vec![interiorair_up_cf];
 
-    let interiorair_down_cf = predicer::ConFactor {
+    let interiorair_down_cf = input_data::ConFactor {
         var_type: String::from("state"),
         flow: (String::from("interiorair"), String::from("")),
         data: &interiorair_down_ts,
     };
 
-    let interiorair_down_cf_vec: Vec<predicer::ConFactor> = vec![interiorair_down_cf];
+    let interiorair_down_cf_vec: Vec<input_data::ConFactor> = vec![interiorair_down_cf];
 
-    let _c_interiorair_up = predicer::GenConstraint {
+    let _c_interiorair_up = input_data::GenConstraint {
         name: String::from("c_interiorair_up"),
         gc_type: String::from("st"),
         is_setpoint: true,
@@ -604,7 +588,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         constant: &time_series_data,
     };
 
-    let _c_interiorair_down = predicer::GenConstraint {
+    let _c_interiorair_down = input_data::GenConstraint {
         name: String::from("c_interiorair_down"),
         gc_type: String::from("gt"),
         is_setpoint: true,
@@ -642,35 +626,11 @@ pub fn run_predicer() -> Vec<(String, f64)> {
 
 }
 
+
 fn _print_tuple_vector(vec: &Vec<(String, f64)>) {
     for (s, num) in vec {
         println!("{}: {}", s, num);
     }
-}
-
-// Data structure for messaging between Home Assistant UI.
-#[derive(Deserialize, Serialize, Debug)]
-struct DataHass {
-	entity_cat: i32,
-	entity_id: String,
-	data_type: i32,
-	data_unit: String,
-	data_str: String,
-	data_int: i32,
-	data_float: f32,
-	data_bool: bool,
-	date_time: String,
-}
-
-// Configuration options saved into a json file in the addon data directory.
-#[derive(Deserialize, Debug)]
-struct Options {
-	floor_area: i32,
-	stories: i32,
-	insulation_u_value: f32,
-    listen_ip: String,
-    port: String,
-    hass_token: String,
 }
 
 async fn _make_post_request(url: &str, data: &str, token: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -740,17 +700,11 @@ async fn make_post_request_light(url: &str, entity_id: &str, token: &str, bright
     Ok(())
 }
 
-fn print_f64_vector(vector: &Vec<f64>) {
-    for value in vector.iter() {
-        println!("{}", value);
-    }
-}
-
 async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Rejection> {
     let vector: Vec<(String, f64)> = run_predicer();
 
     let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
-    print_f64_vector(&brightness_values);
+    utilities::print_f64_vector(&brightness_values);
 
     let url = "http://192.168.1.171:8123/api/services/light/turn_on";
     let entity_id = "light.katto1";
@@ -768,15 +722,37 @@ async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Reject
     Ok(warp::reply::json(&"Logic executed successfully"))
 }
 
+// Data structure for messaging between Home Assistant UI.
+#[derive(Deserialize, Serialize, Debug)]
+struct DataHass {
+	entity_cat: i32,
+	entity_id: String,
+	data_type: i32,
+	data_unit: String,
+	data_str: String,
+	data_int: i32,
+	data_float: f32,
+	data_bool: bool,
+	date_time: String,
+}
+
+// Configuration options saved into a json file in the addon data directory.
+#[derive(Deserialize, Debug)]
+struct Options {
+	floor_area: i32,
+	stories: i32,
+	insulation_u_value: f32,
+    listen_ip: String,
+    port: String,
+    hass_token: String,
+}
+
 #[tokio::main]
 async fn main() {
-    // Uncomment and use the following line for checking directory contents
 
-    
-    //print_directory_contents("/app");
-	//print_directory_contents("/usr/local/bin");
 
     //Tarkista missä options.jsonin pitäisi olla
+
 	
     // Define the path to the options.json file
     let options_path = "/data/options.json";
@@ -816,9 +792,7 @@ async fn main() {
 	} else {
 		// If the token is too short, just print it as is
 		options.hass_token.clone()
-	};
-
-    
+	}; 
 	
     // Combine IP address and port into a single string
     let ip_port = format!("{}:{}", listen_ip, port);
@@ -845,46 +819,20 @@ async fn main() {
         // Immediately respond to the POST request
         warp::reply::json(&"Request received, logic is running")
     });
-
-    /* 
-	
-    // Define a filter for the specific path and POST method
-    let my_route = warp::path!("from_hass" / "post")
-        .and(warp::post())
-        .and(warp::body::json()) // Automatically deserialize JSON data
-        .map(|data: DataHass| {
-            // Print the received data to the console
-            println!("Received data: {:?}", data);
-            // Handle the received data
-            warp::reply::json(&data) // Echo the received data as JSON
-        });
-
-    */
 	
     // Print a message indicating that the server is starting
-    println!("Server started at {}", ip_address);
     
-    let vector: Vec<(String, f64)> = run_predicer();
-
-    let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
-    print_f64_vector(&brightness_values);
+    println!("Server started at {}", ip_address);
 
     // Make a test POST call to the Home Assistant User Interface.
     println!("Make test POST call to the Home Assistant User Interface:");
     let url = "http://192.168.1.171:8123/api/services/light/turn_on";
     let entity_id = "light.katto1";
     
-    
-    for brightness in brightness_values {
-        if let Err(err) = make_post_request_light(url, entity_id, hass_token, brightness).await {
-            eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
-        }
-
-        // Wait for 10 seconds before sending the next request
-        time::sleep(Duration::from_secs(5)).await;
-    }
 
     // Combine filters and start the warp server
     warp::serve(my_route).run(ip_address).await;
     
+    
 }
+

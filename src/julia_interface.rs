@@ -4,6 +4,8 @@ use jlrs::data::managed::value::ValueData;
 use jlrs::data::managed::value::ValueResult;
 use jlrs::memory::target::ExtendedTarget;
 use jlrs::prelude::*;
+use jlrs::memory::target::frame;
+use std::sync::Once;
 
 fn prepare_callable<'target, 'data, T: Target<'target>>(
     target: T,
@@ -115,6 +117,72 @@ where
     })
 }
 
+pub fn initialize_julia() -> PendingJulia {
+
+    let pending = unsafe { RuntimeBuilder::new().start().expect("Could not init Julia") };
+    return pending
+
+}
+
+pub fn make_rust_vector_f64<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) -> Vec<f64> {
+    let length = unsafe {
+        Module::base(&frame).function(&frame, "length").unwrap().as_managed()
+    };
+    let vector_length = unsafe {
+        length.call1(&frame, *vector).unwrap().as_managed().unbox::<i64>().unwrap()
+    };
+    let get_index = unsafe {
+        Module::base(&frame).function(&frame, "getindex").unwrap().as_managed()
+    };
+
+    let mut rust_vector: Vec<f64> = Vec::new();
+
+    for n in 1..vector_length + 1 {
+        frame.scope(|mut frame| {
+            let index = Value::new(&mut frame, n);
+            let x = unsafe {
+                get_index.call2(&mut frame, *vector, index).into_jlrs_result().unwrap().unbox::<f64>().unwrap()
+            };
+            rust_vector.push(x);
+            Ok(())
+        }).unwrap();
+    }
+
+    return rust_vector
+}
+
+pub fn make_rust_vector_string<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) -> Vec<String> {
+    let length = unsafe {
+        Module::base(&frame).function(&frame, "length").unwrap().as_managed()
+    };
+    let vector_length = unsafe {
+        length.call1(&frame, *vector).unwrap().as_managed().unbox::<i64>().unwrap()
+    };
+    let get_index = unsafe {
+        Module::base(&frame).function(&frame, "getindex").unwrap().as_managed()
+    };
+
+    let mut rust_vector: Vec<String> = Vec::new();
+
+    for n in 1..vector_length + 1 {
+        frame.scope(|mut frame| {
+            let index = Value::new(&mut frame, n);
+            let x = unsafe {
+                get_index.call2(&mut frame, *vector, index).into_jlrs_result().unwrap().unbox::<String>().unwrap()
+            };
+            match x {
+                Ok(s) => {
+                    rust_vector.push(s);
+                }
+                Err(error) => println!("Error converting to string: {:?}", error),
+            }
+            Ok(())
+        }).unwrap();
+    }
+
+    return rust_vector
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,6 +215,7 @@ mod tests {
         Ok(())
     }
 
+     
     fn create_simple_ordered_dict_for_julia(julia: &mut Julia) -> Result<(), String> {
         let dict_data = vec![("a".to_string(), 2.3)];
         julia.scope(|mut gc_frame| {
@@ -171,4 +240,7 @@ mod tests {
         }).unwrap();
         Ok(())
     }
+    
 }
+
+
