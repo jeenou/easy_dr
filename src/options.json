@@ -1,7 +1,7 @@
 {
     "listen_ip": "0.0.0.0",
     "port": "8001",
-    "hass_token": "Bearer gfjfkfkfkfkf",
+    "hass_token": "Bearer --",
     "floor_area": 53,
     "stories": 1,
     "insulation_u_value": 0.1

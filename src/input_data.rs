@@ -1,24 +1,26 @@
 
 use std::collections::HashMap;
 
-struct _InputData<'a> {
-    contains_reserves: bool,
-    contains_online: bool,
-    contains_state: bool,
-    contains_piecewise_eff: bool,
-    contains_risk: bool,
-    contains_delay: bool,
-    contains_diffusion: bool,
-    nodes: HashMap<&'a String, &'a Node<'a>>,
-    processes: HashMap<&'a String, &'a Process<'a>>,
-    markets: HashMap<&'a String, &'a Market<'a>>,
-    groups: HashMap<&'a String, &'a Group>,
-    gen_constraints: HashMap<&'a String, &'a GenConstraint<'a>>,
-    node_diffusion: HashMap<&'a String, &'a NodeDiffusion>,
-    node_delay: HashMap<&'a String, &'a NodeDelay>,
+#[derive(Clone)]
+pub struct InputData {
+    pub contains_reserves: bool,
+    pub contains_online: bool,
+    pub contains_state: bool,
+    pub contains_piecewise_eff: bool,
+    pub contains_risk: bool,
+    pub contains_delay: bool,
+    pub contains_diffusion: bool,
+    pub nodes: HashMap<String, Node>,
+    pub processes: HashMap<String, Process>,
+    pub markets: HashMap<String, Market>,
+    pub groups: HashMap<String, Group>,
+    pub gen_constraints: HashMap<String, GenConstraint>,
+    pub node_diffusion: HashMap<String, NodeDiffusion>,
+    pub node_delay: HashMap<String, NodeDelay>,
 }
 
-pub struct Process<'a> {
+#[derive(Clone)]
+pub struct Process {
     pub name: String,
     pub group: String,
     pub delay: f64,
@@ -36,37 +38,25 @@ pub struct Process<'a> {
     pub max_online: f64,
     pub max_offline: f64,
     pub initial_state: f64,
-    pub topos: &'a Vec<Topology>,
-    pub eff_ops: &'a Vec<String>,
+    pub topos: Vec<Topology>,
+    pub eff_ops: Vec<String>,
 }
 
-impl<'a> std::fmt::Debug for Process<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Write your custom formatting logic here
-        write!(f, "Process {{ /* ... */ }}")
-    }
-}
-
-pub struct Node<'a> {
+#[derive(Clone)]
+pub struct Node {
     pub name: String,
     pub is_commodity: bool,
     pub is_state: bool,
     pub is_res: bool,
     pub is_market: bool,
     pub is_inflow: bool,
-    pub cost: &'a TimeSeriesData,
-    pub inflow: &'a TimeSeriesData,
+    pub cost: TimeSeriesData,
+    pub inflow: TimeSeriesData,
     pub state: State,
 }
 
-impl<'a> std::fmt::Debug for Node<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Write your custom formatting logic here
-        write!(f, "Node {{ /* ... */ }}")
-    }
-}
-
-pub struct Market<'a> {
+#[derive(Clone)]
+pub struct Market {
     pub name: String,
     pub m_type: String,
     pub node: String, //mikä tyyppi
@@ -79,24 +69,19 @@ pub struct Market<'a> {
     pub min_bid: f64,
     pub max_bid: f64,
     pub fee: f64,
-    pub price: &'a TimeSeriesData,
-    pub up_price: &'a TimeSeriesData,
-    pub down_price: &'a TimeSeriesData,
+    pub price: TimeSeriesData,
+    pub up_price: TimeSeriesData,
+    pub down_price: TimeSeriesData,
 }
 
+#[derive(Clone)]
 pub struct Group {
     pub name: String,
     pub g_type: String,
     pub entity: String,
 }
 
-impl<'a> std::fmt::Debug for Market<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Write your custom formatting logic here
-        write!(f, "Node {{ /* ... */ }}")
-    }
-}
-
+#[derive(Clone)]
 pub struct NodeDiffusion {
     pub name: String,
     pub node1: String,
@@ -104,6 +89,8 @@ pub struct NodeDiffusion {
     pub diff_coeff: f64,
 }
 
+
+#[derive(Clone)]
 pub struct NodeDelay {
     pub name: String,
     pub node1: String,
@@ -113,6 +100,7 @@ pub struct NodeDelay {
     pub max_flow: f64,
 }
 
+#[derive(Clone)]
 pub struct Topology {
     pub source: String,
     pub sink: String,
@@ -122,6 +110,7 @@ pub struct Topology {
     pub ramp_down: f64,
 }
 
+#[derive(Clone)]
 #[derive(Default)]
 pub struct State {
     pub in_max: f64,
@@ -135,33 +124,38 @@ pub struct State {
     pub residual_value: f64,
 }
 
+#[derive(Clone)]
 pub struct TimeSeries {
     pub scenario: String,
     pub series: Vec<(String, f64)>,
 }
 
+#[derive(Clone)]
 pub struct TimeSeriesData {
     pub ts_data: Vec<TimeSeries>,
 }
 
-pub struct ConFactor<'a> {
+#[derive(Clone)]
+pub struct ConFactor {
     pub var_type: String,
     pub flow: (String, String),
-    pub data: &'a TimeSeriesData,
+    pub data: TimeSeriesData,
 }
 
-pub struct NodeHistory<'a> {
+#[derive(Clone)]
+pub struct NodeHistory {
     pub node: String,
-    pub steps: &'a TimeSeriesData,
+    pub steps: TimeSeriesData,
 }
 
-pub struct GenConstraint<'a> {
+#[derive(Clone)]
+pub struct GenConstraint {
     pub name: String,
     pub gc_type: String,
     pub is_setpoint: bool,
     pub penalty: f64,
-    pub factors: &'a Vec<ConFactor<'a>>,
-    pub constant: &'a TimeSeriesData,
+    pub factors: Vec<ConFactor>,
+    pub constant: TimeSeriesData,
 }
 
 

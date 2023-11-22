@@ -6,19 +6,22 @@ mod input_data;
 use hertta::julia_interface;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
-use tokio::time::{self, Duration};
-use std::net::SocketAddr;
-use std::fs;
-use warp::Filter;
+//use tokio::time::{self, Duration};
+//use std::net::SocketAddr;
+//use std::fs;
+//use warp::Filter;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::error::Error;
-use std::fmt;
-use warp::reject::Reject;
-use tokio::task;
+//use tokio::sync::mpsc;
+//use tokio::sync::Mutex;
+//use std::sync::Arc;
+use std::{num::NonZeroUsize, path::PathBuf};
+use jlrs::prelude::*;
+use predicer::RunPredicer;
 
 
-pub fn run_predicer() -> Vec<(String, f64)> {
+
+pub fn create_data() -> input_data::InputData {
 
     let args: Vec<String> = env::args().collect();
     let predicer_dir = args
@@ -376,8 +379,8 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         is_res: false,
         is_market: false,
         is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
+        cost: time_series_data.clone(),
+        inflow: time_series_data.clone(),
         state: interiorair_state,
     };
 
@@ -415,8 +418,8 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         is_res: false,
         is_market: false,
         is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
+        cost: time_series_data.clone(),
+        inflow: time_series_data.clone(),
         state: building_envelope_state,
     };
 
@@ -441,8 +444,8 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         is_res: false,
         is_market: false,
         is_inflow: true,
-        cost: &time_series_data,
-        inflow: &outside_ts,
+        cost: time_series_data.clone(),
+        inflow: outside_ts.clone(),
         state: outside_state,
     };
 
@@ -455,31 +458,31 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         is_res: false,
         is_market: false,
         is_inflow: false,
-        cost: &time_series_data,
-        inflow: &time_series_data,
+        cost: time_series_data.clone(),
+        inflow: time_series_data.clone(),
         state: empty_state,
     };
 
     let _node_history_1 = input_data::NodeHistory {
         node: String::from("electricitygrid"),
-        steps: &time_series_data,
+        steps: time_series_data.clone(),
     };
 
-    let mut _nodes: HashMap<&String, &input_data::Node> = HashMap::new();
-    let mut _node_diffusion: HashMap<&String, &input_data::NodeDiffusion> = HashMap::new();
-    let mut _node_delay: HashMap<&String, &input_data::NodeDelay> = HashMap::new();
+    let mut _nodes: HashMap<String, input_data::Node> = HashMap::new();
+    let mut _node_diffusion: HashMap<String, input_data::NodeDiffusion> = HashMap::new();
+    let mut _node_delay: HashMap<String, input_data::NodeDelay> = HashMap::new();
 
-    _nodes.insert(&_interiorair.name, &_interiorair);
-    _nodes.insert(&_building_envelope.name, &_building_envelope);
-    _nodes.insert(&_outside.name, &_outside);
-    _nodes.insert(&_electricitygrid.name, &_electricitygrid);
+    _nodes.insert(_interiorair.name.clone(), _interiorair.clone());
+    _nodes.insert(_building_envelope.name.clone(), _building_envelope.clone());
+    _nodes.insert(_outside.name.clone(), _outside.clone());
+    _nodes.insert(_electricitygrid.name.clone(), _electricitygrid.clone());
 
-    _node_diffusion.insert(&diffusion_1.name, &diffusion_1);
-    _node_diffusion.insert(&diffusion_2.name, &diffusion_2);
+    _node_diffusion.insert(diffusion_1.name.clone(), diffusion_1.clone());
+    _node_diffusion.insert(diffusion_2.name.clone(), diffusion_2.clone());
 
-    _node_delay.insert(&delay_1.name, &delay_1);
+    _node_delay.insert(delay_1.name.clone(), delay_1.clone());
 
-    let mut _processes: HashMap<&String, &input_data::Process> = HashMap::new();
+    let mut _processes: HashMap<String, input_data::Process> = HashMap::new();
 
     //Creating topology for processes
 
@@ -525,15 +528,15 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         max_online: 0.0,
         max_offline: 0.0,
         initial_state: 0.0,
-        topos: &topo_vec,
-        eff_ops: &process_vec,
+        topos: topo_vec.clone(),
+        eff_ops: process_vec.clone(),
     };
 
-    _processes.insert(&_electricheater1.name, &_electricheater1);
+    _processes.insert(_electricheater1.name.clone(), _electricheater1.clone());
 
-    let mut _markets: HashMap<&String, &input_data::Market> = HashMap::new();
-    let mut _groups: HashMap<&String, &input_data::Group> = HashMap::new();
-    let mut _genconstraints: HashMap<&String, &input_data::GenConstraint> = HashMap::new();
+    let mut _markets: HashMap<String, input_data::Market> = HashMap::new();
+    let mut _groups: HashMap<String, input_data::Group> = HashMap::new();
+    let mut _genconstraints: HashMap<String, input_data::GenConstraint> = HashMap::new();
 
     let _npe = input_data::Market {
         name: String::from("npe"),
@@ -548,12 +551,12 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         min_bid: 0.0,
         max_bid: 0.0,
         fee: 0.0,
-        price: &npe_ts,
-        up_price: &npe_up_ts,
-        down_price: &npe_down_ts,
+        price: npe_ts.clone(),
+        up_price: npe_up_ts.clone(),
+        down_price: npe_down_ts.clone(),
     };
 
-    _markets.insert(&_npe.name, &_npe);
+    _markets.insert(_npe.name.clone(), _npe.clone());
 
     let _p1 = input_data::Group {
         name: String::from("p1"),
@@ -561,12 +564,12 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         entity: String::from("electricheater"),
     };
 
-    _groups.insert(&_p1.name, &_p1);
+    _groups.insert(_p1.name.clone(), _p1.clone());
 
     let interiorair_up_cf = input_data::ConFactor {
         var_type: String::from("state"),
         flow: (String::from("interiorair"), String::from("")),
-        data: &interiorair_up_ts,
+        data: interiorair_up_ts.clone(),
     };
 
     let interiorair_up_cf_vec: Vec<input_data::ConFactor> = vec![interiorair_up_cf];
@@ -574,7 +577,7 @@ pub fn run_predicer() -> Vec<(String, f64)> {
     let interiorair_down_cf = input_data::ConFactor {
         var_type: String::from("state"),
         flow: (String::from("interiorair"), String::from("")),
-        data: &interiorair_down_ts,
+        data: interiorair_down_ts.clone(),
     };
 
     let interiorair_down_cf_vec: Vec<input_data::ConFactor> = vec![interiorair_down_cf];
@@ -584,8 +587,8 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         gc_type: String::from("st"),
         is_setpoint: true,
         penalty: 1000.0,
-        factors: &interiorair_up_cf_vec,
-        constant: &time_series_data,
+        factors: interiorair_up_cf_vec.clone(),
+        constant: time_series_data.clone(),
     };
 
     let _c_interiorair_down = input_data::GenConstraint {
@@ -593,36 +596,35 @@ pub fn run_predicer() -> Vec<(String, f64)> {
         gc_type: String::from("gt"),
         is_setpoint: true,
         penalty: 1000.0,
-        factors: &interiorair_down_cf_vec,
-        constant: &time_series_data,
+        factors: interiorair_down_cf_vec.clone(),
+        constant: time_series_data.clone(),
     };
 
-    _genconstraints.insert(&_c_interiorair_up.name, &_c_interiorair_up);
-    _genconstraints.insert(&_c_interiorair_down.name, &_c_interiorair_down);
+    _genconstraints.insert(_c_interiorair_up.name.clone(), _c_interiorair_up.clone());
+    _genconstraints.insert(_c_interiorair_down.name.clone(), _c_interiorair_down.clone());
 
     let mut _solution: Vec<(String, f64)> = Vec::new();
     
-     
-    _solution = predicer::predicer(
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        _nodes,
-        _processes,
-        _markets,
-        _groups,
-        _genconstraints,
-        _node_diffusion,
-        _node_delay,
-        predicer_dir,
-    );
-
-    return _solution
     
+     
+    let data = input_data::InputData {
+        contains_reserves: false,
+        contains_online: false,
+        contains_state: true,
+        contains_piecewise_eff: false,
+        contains_risk: false,
+        contains_delay: false,
+        contains_diffusion: true,
+        nodes: _nodes,
+        processes: _processes,
+        markets: _markets,
+        groups: _groups,
+        gen_constraints: _genconstraints,
+        node_diffusion: _node_diffusion,
+        node_delay: _node_delay,
+    };
+
+    return data
 
 }
 
@@ -700,7 +702,8 @@ async fn make_post_request_light(url: &str, entity_id: &str, token: &str, bright
     Ok(())
 }
 
-async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Rejection> {
+/* 
+async fn _run_logic(hass_token: String, tx: mpsc::Sender<String>) -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting logic execution...");
     let vector: Vec<(String, f64)> = run_predicer();
 
@@ -721,14 +724,21 @@ async fn _run_logic(hass_token: String) -> Result<impl warp::Reply, warp::Reject
 
         // Wait for 5 seconds before sending the next request
         println!("Waiting for 5 seconds before next request...");
-        time::sleep(Duration::from_secs(5)).await;
+        time::sleep(Duration::from_secs(2)).await;
     }
 
     println!("Completed.");
 
-    // You can return some confirmation if needed
-    Ok(warp::reply::json(&"Logic executed successfully"))
+    // Notify the main thread that the logic is complete
+    match tx.send("Logic complete".to_owned()).await {
+        Ok(_) => println!("Notification sent successfully."),
+        Err(e) => eprintln!("Failed to send notification: {:?}", e),
+    }
+
+    Ok(())
+
 }
+*/
 
 // Data structure for messaging between Home Assistant UI.
 #[derive(Deserialize, Serialize, Debug)]
@@ -758,82 +768,60 @@ struct Options {
 #[tokio::main]
 async fn main() {
 
-	
-    // Define the path to the options.json file
-    let options_path = "/data/options.json";
-    //let options_path = "./src/options.json";
+    let data = create_data();
 
-    // Read the options.json file as a string
-    let options_str = match fs::read_to_string(options_path) {
-        Ok(content) => content,
-        Err(err) => {
-            eprintln!("Error reading options.json: {}", err);
-            return;
-        }
+    let args: Vec<String> = env::args().collect();
+    let predicer_dir = args
+        .get(1)
+        .expect("first argument should be path to Predicer");
+
+    let (julia, handle) = unsafe {
+        RuntimeBuilder::new()
+            .async_runtime::<Tokio>()
+            .channel_capacity(NonZeroUsize::new(4).unwrap())
+            .start_async::<1>()
+            .expect("Could not init Julia")
     };
 
-    // Parse the options JSON string into an Options struct
-    let options: Options = match serde_json::from_str(&options_str) {
-        Ok(parsed_options) => parsed_options,
-        Err(err) => {
-            eprintln!("Error parsing options.json: {}", err);
-            return;
-        }
-    };
-	
-    // Extract option data from the options.json file.
-	let _floor_area = &options.floor_area;
-	let _stories = &options.stories;
-	let _insulation_u_value = &options.insulation_u_value;
-    let listen_ip = &options.listen_ip;
-    let port = &options.port;
-	let hass_token = &options.hass_token;
-	
-	// Partially mask the hass token for printing.
-	let _masked_token = if options.hass_token.len() > 4 {
-		let last_part = &options.hass_token[options.hass_token.len() - 4..];
-		let masked_part = "*".repeat(options.hass_token.len() - 4);
-		format!("{}{}", masked_part, last_part)
-	} else {
-		// If the token is too short, just print it as is
-		options.hass_token.clone()
-	}; 
-	
-    // Combine IP address and port into a single string
-    let ip_port = format!("{}:{}", listen_ip, port);
+    {
+        // Include the custom code MyTask needs by registering it.
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        julia
+            .register_task::<RunPredicer, _>(sender)
+            .dispatch_any()
+            .await;
+        receiver.await.unwrap().unwrap();
+    }
 
-    // Parse the combined string into a SocketAddr
-    let ip_address: SocketAddr = ip_port.parse().unwrap();
+    // Send task to the runtime.
+    let (sender1, receiver1) = tokio::sync::oneshot::channel();
 
-    let hass_token_clone = hass_token.clone();
+    julia
+        .task(
+            RunPredicer {
+                data: data,
+                predicer_dir: predicer_dir.clone(),
+            },
+            sender1,
+        )
+        .dispatch_any()
+        .await;
 
-    let my_route = warp::path!("from_hass" / "post")
-    .and(warp::post())
-    .map(move || {
-        // Clone the token for the spawned task
-        let token = hass_token_clone.clone();
-        // Spawn a new asynchronous task
-        task::spawn(async move {
-            // Here you call your logic function that contains the code you want to run
-            if let Err(e) = _run_logic(token).await {
-                // Handle any errors that might occur
-                eprintln!("Error running logic: {:?}", e);
-            }
-        });
+    // Receive the results of the tasks.
+    let res1 = receiver1.await.unwrap().unwrap();
 
-        // Immediately respond to the POST request
-        warp::reply::json(&"Request received, logic is running")
-    });
-	
-    // Print a message indicating that the server is starting
-    
-    println!("Server started at {}", ip_address);
-    
+    for (str_val, num_val) in &res1 {
+        println!("{}: {}", str_val, num_val);
+    }
 
-    // Combine filters and start the warp server
-    warp::serve(my_route).run(ip_address).await;
-    
-    
+    // Dropping `julia` causes the runtime to shut down Julia and itself if it was the final
+    // handle to the runtime. Await the runtime handle handle to wait for everything to shut
+    // down cleanly.
+    std::mem::drop(julia);
+    handle
+        .await
+        .expect("Julia exited with an error")
+        .expect("The runtime thread panicked");
     
 }
 

@@ -8,7 +8,6 @@ use jlrs::memory::target::frame;
 use std::sync::Once;
 
 static INIT: Once = Once::new();
-static mut PENDING: Option<PendingJulia> = None;
 
 fn prepare_callable<'target, 'data, T: Target<'target>>(
     target: T,
@@ -118,16 +117,6 @@ where
         }
         Ok(ordered_dict.root(target))
     })
-}
-
-pub fn initialize_julia() -> &'static mut PendingJulia {
-    unsafe {
-        INIT.call_once(|| {
-            PENDING = Some(RuntimeBuilder::new().start().expect("Could not init Julia"));
-        });
-
-        PENDING.as_mut().expect("Julia runtime was not initialized")
-    }
 }
 
 pub fn make_rust_vector_f64<'target, 'data>(frame: &mut frame::GcFrame<'target>, vector: &Value<'target, 'data>) -> Vec<f64> {
