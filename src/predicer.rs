@@ -36,7 +36,6 @@ impl AsyncTask for RunPredicer {
             let mut list: Vec<Value> = Vec::new();
 
             //Create processes
-
             
             let dict_processes = julia_interface::call(
                 &mut frame,

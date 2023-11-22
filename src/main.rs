@@ -6,20 +6,24 @@ mod input_data;
 use hertta::julia_interface;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
-//use tokio::time::{self, Duration};
-//use std::net::SocketAddr;
-//use std::fs;
-//use warp::Filter;
+use tokio::time::{self, Duration};
+use std::net::SocketAddr;
+use std::fs;
+use warp::Filter;
 use serde::{Deserialize, Serialize};
 use serde_json;
-//use tokio::sync::mpsc;
+use tokio::sync::mpsc;
 //use tokio::sync::Mutex;
 //use std::sync::Arc;
 use std::{num::NonZeroUsize, path::PathBuf};
 use jlrs::prelude::*;
 use predicer::RunPredicer;
+use tokio::task;
 
+#[derive(Debug)]
+struct MyError(String);
 
+impl warp::reject::Reject for MyError {}
 
 pub fn create_data() -> input_data::InputData {
 
@@ -702,43 +706,6 @@ async fn make_post_request_light(url: &str, entity_id: &str, token: &str, bright
     Ok(())
 }
 
-/* 
-async fn _run_logic(hass_token: String, tx: mpsc::Sender<String>) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting logic execution...");
-    let vector: Vec<(String, f64)> = run_predicer();
-
-    let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
-
-    println!("Results obtained.");
-
-    let url = "http://192.168.1.171:8123/api/services/light/turn_on";
-    let entity_id = "light.katto1";
-    
-    for brightness in brightness_values {
-        println!("Setting brightness to: {}", brightness);
-        if let Err(err) = make_post_request_light(url, entity_id, &hass_token, brightness).await {
-            eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
-        } else {
-            println!("POST request successful for brightness: {}", brightness);
-        }
-
-        // Wait for 5 seconds before sending the next request
-        println!("Waiting for 5 seconds before next request...");
-        time::sleep(Duration::from_secs(2)).await;
-    }
-
-    println!("Completed.");
-
-    // Notify the main thread that the logic is complete
-    match tx.send("Logic complete".to_owned()).await {
-        Ok(_) => println!("Notification sent successfully."),
-        Err(e) => eprintln!("Failed to send notification: {:?}", e),
-    }
-
-    Ok(())
-
-}
-*/
 
 // Data structure for messaging between Home Assistant UI.
 #[derive(Deserialize, Serialize, Debug)]
@@ -765,15 +732,9 @@ struct Options {
     hass_token: String,
 }
 
-#[tokio::main]
-async fn main() {
+async fn run_predicer(predicer_dir: String, hass_token: String) -> Result<(), MyError> {
 
     let data = create_data();
-
-    let args: Vec<String> = env::args().collect();
-    let predicer_dir = args
-        .get(1)
-        .expect("first argument should be path to Predicer");
 
     let (julia, handle) = unsafe {
         RuntimeBuilder::new()
@@ -810,9 +771,27 @@ async fn main() {
     // Receive the results of the tasks.
     let res1 = receiver1.await.unwrap().unwrap();
 
-    for (str_val, num_val) in &res1 {
-        println!("{}: {}", str_val, num_val);
+    let brightness_values: Vec<f64> = res1.iter().map(|(_, value)| *value * 20.0).collect();
+
+    println!("Results obtained.");
+
+    let url = "http://192.168.1.171:8123/api/services/light/turn_on";
+    let entity_id = "light.katto1";
+    
+    for brightness in brightness_values {
+        println!("Setting brightness to: {}", brightness);
+        if let Err(err) = make_post_request_light(url, entity_id, &hass_token, brightness).await {
+            eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
+        } else {
+            println!("POST request successful for brightness: {}", brightness);
+        }
+
+        // Wait for 5 seconds before sending the next request
+        println!("Waiting for 5 seconds before next request...");
+        time::sleep(Duration::from_secs(2)).await;
     }
+
+    println!("Completed.");
 
     // Dropping `julia` causes the runtime to shut down Julia and itself if it was the final
     // handle to the runtime. Await the runtime handle handle to wait for everything to shut
@@ -822,6 +801,94 @@ async fn main() {
         .await
         .expect("Julia exited with an error")
         .expect("The runtime thread panicked");
+
+    Ok(())
+
+}
+
+#[tokio::main]
+async fn main() {
+
+
+    let args: Vec<String> = env::args().collect();
+    let predicer_dir = args
+        .get(1)
+        .expect("first argument should be path to Predicer").clone();
+
+    let options_path = "/data/options.json";
+    //let options_path = "./src/options.json";
+
+    let options_str = match fs::read_to_string(options_path) {
+        Ok(content) => content,
+        Err(err) => {
+            eprintln!("Error reading options.json: {}", err);
+            return;
+        }
+    };
+
+    // Parse the options JSON string into an Options struct
+    let options: Options = match serde_json::from_str(&options_str) {
+        Ok(parsed_options) => parsed_options,
+        Err(err) => {
+            eprintln!("Error parsing options.json: {}", err);
+            return;
+        }
+    };
+	
+    // Extract option data from the options.json file.
+	let _floor_area = &options.floor_area;
+	let _stories = &options.stories;
+	let _insulation_u_value = &options.insulation_u_value;
+    let listen_ip = &options.listen_ip;
+    let port = &options.port;
+	let hass_token = &options.hass_token;
+	
+	// Partially mask the hass token for printing.
+	let _masked_token = if options.hass_token.len() > 4 {
+		let last_part = &options.hass_token[options.hass_token.len() - 4..];
+		let masked_part = "*".repeat(options.hass_token.len() - 4);
+		format!("{}{}", masked_part, last_part)
+	} else {
+		// If the token is too short, just print it as is
+		options.hass_token.clone()
+	};
+
+    let ip_port = format!("{}:{}", listen_ip, port);
+
+    // Parse the combined string into a SocketAddr
+    let ip_address: SocketAddr = ip_port.parse().unwrap();
+
+    let hass_token_clone = hass_token.clone();
+
+    let my_route = warp::path!("from_hass" / "post")
+    .and(warp::post())
+    .map(move || {
+        // Clone the token for the spawned task
+        let token = hass_token_clone.clone();
+        let predicer_dir_clone = predicer_dir.clone();
+        // Spawn a new asynchronous task
+        task::spawn(async move {
+            // Here you call your logic function that contains the code you want to run
+            if let Err(e) = run_predicer(predicer_dir_clone, token).await {
+                // Handle any errors that might occur
+                eprintln!("Error running logic: {:?}", e);
+            }
+        });
+
+        // Immediately respond to the POST request
+        warp::reply::json(&"Request received, logic is running")
+    });
+	
+    // Print a message indicating that the server is starting
+    
+    println!("Server started at {}", ip_address);
+    
+
+    // Combine filters and start the warp server
+    warp::serve(my_route).run(ip_address).await;
+
+
+    
     
 }
 
