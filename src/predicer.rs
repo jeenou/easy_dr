@@ -18,12 +18,9 @@ impl AsyncTask for RunPredicer {
     type Affinity = DispatchAny;
 
     async fn run<'base>(&mut self, mut frame: AsyncGcFrame<'base>) -> JlrsResult<Self::Output> {
-        //let mut frame = StackFrame::new();
+
         unsafe { RuntimeBuilder::new().async_runtime::<Tokio>().start_async::<1>().expect("Could not init Julia") };
-        //let mut julia = pending.instance(&mut frame);
-    
         let mut solution_vector: Vec<(String, f64)> = Vec::new();
-        //let mut async_solution: Result<jlrs::prelude::Value<'_, '_>, jlrs::prelude::Value<'_, '_>>;
     
         unsafe {
 
@@ -257,6 +254,7 @@ impl AsyncTask for RunPredicer {
             
             let _input_data = julia_interface::call(&mut frame, &["Predicer", "create_inputdata"], &i_args).into_jlrs_result();
 
+
             //Solve model
 
             match _input_data {
@@ -312,13 +310,9 @@ impl AsyncTask for RunPredicer {
                             utilities::combine_vectors(&mut solution_vector, ts_vector, data_vector);
 
                             
-
-                            
                         }
                         Err(error) => println!("Error solving model: {:?}", error),
-                    }
-
-                        
+                    }   
 
                 }
                 Err(error) => println!("Error solving model: {:?}", error),

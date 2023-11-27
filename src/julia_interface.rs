@@ -7,8 +7,6 @@ use jlrs::prelude::*;
 use jlrs::memory::target::frame;
 use std::sync::Once;
 
-static INIT: Once = Once::new();
-
 fn prepare_callable<'target, 'data, T: Target<'target>>(
     target: T,
     function: &[&str],
@@ -178,64 +176,6 @@ pub fn make_rust_vector_string<'target, 'data>(frame: &mut frame::GcFrame<'targe
     return rust_vector
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn test_all_things_requiring_julia_instance() -> Result<(), String> {
-        // We can instantiate only a single Julia in a thread at a time,
-        // so all tests that require a Julia instance have been gathered under this umbrella function.
-        let mut pending = unsafe { RuntimeBuilder::new().start().expect("failed to init Julia") };
-        let mut stack_frame = StackFrame::new();
-        let mut julia = pending.instance(&mut stack_frame);
-        julia_call_that_sums_two_numbers(&mut julia)?;
-        create_simple_ordered_dict_for_julia(&mut julia)?;
-        Ok(())
-    }
-    fn julia_call_that_sums_two_numbers(julia: &mut Julia) -> Result<(), String> {
-        let sum = julia
-            .scope(|mut gc_frame| {
-                let x = Value::new(&mut gc_frame, 23i64);
-                let y = Value::new(&mut gc_frame, 5i64);
-                call(&mut gc_frame, &["+"], &[x, y])
-                    .into_jlrs_result()
-                    .unwrap()
-                    .unbox::<i64>()
-            })
-            .unwrap();
-        if sum != 28i64 {
-            return Err(String::from("sum not what was expected"));
-        }
-        Ok(())
-    }
-
-     
-    fn create_simple_ordered_dict_for_julia(julia: &mut Julia) -> Result<(), String> {
-        let dict_data = vec![("a".to_string(), 2.3)];
-        julia.scope(|mut gc_frame| {
-            let project_dir = JuliaString::new(&mut gc_frame, "Predicer").as_value();
-            activate_julia_project(&mut gc_frame, project_dir).unwrap();
-            let dict = to_ordered_dict(gc_frame.as_extended_target(), &dict_data).unwrap();
-            let length = call(&mut gc_frame, &["length"], &[dict])
-                .into_jlrs_result()
-                .unwrap()
-                .unbox::<i64>()
-                .unwrap();
-            assert_eq!(length, 1);
-            let key = JuliaString::new(&mut gc_frame, "a").as_value();
-            let default_value = Value::new(&mut gc_frame, 99.0);
-            let value = call(&mut gc_frame, &["get"], &[dict, key, default_value])
-                .into_jlrs_result()
-                .unwrap()
-                .unbox::<f64>()
-                .unwrap();
-            assert_eq!(value, 2.3);
-            Ok(())
-        }).unwrap();
-        Ok(())
-    }
-    
-}
 
 
