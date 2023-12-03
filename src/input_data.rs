@@ -1,4 +1,10 @@
 use std::collections::HashMap;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct HassData {
+    pub internal_temp: f64, // or the appropriate type
+}
 
 #[derive(Clone)]
 pub struct InputData {
@@ -185,7 +191,7 @@ pub fn add_time_serie(ts_data_vec: &mut Vec<TimeSeries>, time_series: TimeSeries
 
 }
 
-pub fn create_data() -> InputData {
+pub fn create_data(hass_data: HassData) -> InputData {
 
     //Example time series
 
@@ -522,7 +528,7 @@ pub fn create_data() -> InputData {
         state_loss_proportional: 0.0,
         state_max: 308.15,
         state_min: 273.15,
-        initial_state: 296.15,
+        initial_state: hass_data.internal_temp.clone(),
         is_temp: true,
         t_e_conversion: 0.5,
         residual_value: 0.0,

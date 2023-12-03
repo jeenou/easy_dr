@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+//use std::collections::HashMap;
 use std::env;
 mod predicer;
 mod utilities;
@@ -10,16 +10,15 @@ use tokio::time::{self, Duration};
 use std::net::SocketAddr;
 use std::fs;
 use warp::Filter;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json;
-use std::error::Error;
-use std::fmt;
-use warp::reject::Reject;
+//use std::error::Error;
+//use std::fmt;
+//use warp::reject::Reject;
 use tokio::task;
 use std::sync::{Arc, Mutex};
 use reqwest::Client;
-
-
+use tokio::sync::mpsc;
 
 fn _print_tuple_vector(vec: &Vec<(String, f64)>) {
     for (s, num) in vec {
@@ -89,10 +88,10 @@ async fn make_post_request_light(url: &str, entity_id: &str, token: &str, bright
     Ok(())
 }
 
-async fn _run_logic(hass_token: String, predicer_dir: String, client: &Client) -> Result<impl warp::Reply, warp::Rejection> {
+async fn _run_logic(hass_token: String, predicer_dir: String, client: &Client, hass_data: input_data::HassData) -> Result<impl warp::Reply, warp::Rejection> {
     println!("Starting logic execution...");
 
-    let data = input_data::create_data();
+    let data = input_data::create_data(hass_data);
     let vector: Vec<(String, f64)> = predicer::predicer(data, predicer_dir);
 
     let brightness_values: Vec<f64> = vector.iter().map(|(_, value)| *value * 20.0).collect();
@@ -101,22 +100,30 @@ async fn _run_logic(hass_token: String, predicer_dir: String, client: &Client) -
 
     utilities::print_f64_vector(&brightness_values);
 
-    
-
     let url = "http://192.168.1.171:8123/api/services/light/turn_on";
     let entity_id = "light.katto1";
     
-    for brightness in brightness_values {
+    // Assuming brightness_values is a vector of integers
+    for brightness in brightness_values.iter().take(1) {
         println!("Setting brightness to: {}", brightness);
-        if let Err(err) = make_post_request_light(url, entity_id, &hass_token, brightness, client).await {
+        
+        // Calculate and print brightness/20
+        let power = *brightness as f64 / 20.0;
+        println!("Power: {}", power);
+
+        
+
+        if let Err(err) = make_post_request_light(url, entity_id, &hass_token, *brightness, client).await {
             eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
         } else {
             println!("POST request successful for brightness: {}", brightness);
         }
 
-        // Wait for 5 seconds before sending the next request
+        // Wait for 3 seconds before sending the next request
         println!("Waiting for 3 seconds before next request...");
         time::sleep(Duration::from_secs(3)).await;
+        
+        
     }
 
     
@@ -125,20 +132,6 @@ async fn _run_logic(hass_token: String, predicer_dir: String, client: &Client) -
 
     // You can return some confirmation if needed
     Ok(warp::reply::json(&"Logic executed successfully"))
-}
-
-// Data structure for messaging between Home Assistant UI.
-#[derive(Deserialize, Serialize, Debug)]
-struct DataHass {
-	entity_cat: i32,
-	entity_id: String,
-	data_type: i32,
-	data_unit: String,
-	data_str: String,
-	data_int: i32,
-	data_float: f32,
-	data_bool: bool,
-	date_time: String,
 }
 
 // Configuration options saved into a json file in the addon data directory.
@@ -208,42 +201,44 @@ async fn main() {
     // Parse the combined string into a SocketAddr
     let ip_address: SocketAddr = ip_port.parse().unwrap();
 
-    let hass_token_clone = hass_token.clone();
-
-    let is_running = Arc::new(Mutex::new(false));
+    let (tx, mut rx) = mpsc::channel::<input_data::HassData>(32);
 
     let my_route = warp::path!("from_hass" / "post")
-    .and(warp::post())
-    .map(move || {
-        let token = hass_token_clone.clone();
-        let predicer_dir_cl = predicer_dir.clone();
-        let is_running_cl = is_running.clone();
-        let client_cl = client.clone();
+        .and(warp::post())
+        .and(warp::body::json())
+        .map(move |data: input_data::HassData| {
+            let tx_clone = tx.clone();
+            let _ = tx_clone.try_send(data); // Send the data to the channel
+            warp::reply::json(&"Request received, command sent")
+        });
 
-        // Check if the function is already running
-        let mut running = is_running_cl.lock().unwrap();
-        if *running {
-            // The function is already running
-            warp::reply::json(&"The process is already running")
-        } else {
-            // Set the flag and release the lock
-            *running = true;
-            drop(running);
+    let is_running = Arc::new(Mutex::new(false));
+    let hass_token_clone = hass_token.clone();
+    let predicer_dir_clone = predicer_dir.clone();
+    let client_clone = client.clone();
 
-            // Spawn a new asynchronous task
-            task::spawn(async move {
-                if let Err(e) = _run_logic(token, predicer_dir_cl, &client_cl).await {
-                    eprintln!("Error running logic: {:?}", e);
+    tokio::spawn(async move {
+        while let Some(data) = rx.recv().await {
+            // Scope for the mutex guard
+            {
+                let mut running = is_running.lock().unwrap();
+                if *running {
+                    // Logic is already running
+                    eprintln!("Logic is already running");
+                    continue;
                 }
-
-                // Reset the flag when done
-                let mut running = is_running_cl.lock().unwrap();
-                *running = false;
-            });
-
-            warp::reply::json(&"Request received, logic is running")
+                *running = true;
+            } // MutexGuard is dropped here
+    
+            // Now it's safe to await, as the lock has been released
+            if let Err(e) = _run_logic(hass_token_clone.clone(), predicer_dir_clone.clone(), &client_clone, data).await {
+                eprintln!("Error running logic: {:?}", e);
+            }
+    
+            // Reset the flag when done
+            *is_running.lock().unwrap() = false;
         }
-    });
+    });  
 	
     // Print a message indicating that the server is starting
     
