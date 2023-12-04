@@ -21,6 +21,7 @@ use jlrs::error::JlrsError;
 use tokio::task::JoinHandle;
 use std::fmt;
 
+
 #[derive(Debug)]
 struct MyError(String);
 
@@ -228,9 +229,15 @@ async fn shutdown_julia_runtime(julia: AsyncJulia<Tokio>, handle: JoinHandle<Res
     }
 }
 
+use tokio::sync::Mutex;
 
-async fn run_predicer(data: input_data::InputData, predicer_dir: String, hass_token: String) -> Result<Vec<(String, f64)>, MyError> {
+async fn run_predicer(
+    julia: Arc<Mutex<AsyncJulia<Tokio>>>,
+    data: input_data::InputData,
+    predicer_dir: String,
+) -> Result<Vec<(String, f64)>, MyError> {
 
+    /* 
     let (julia, handle) = match init_julia_runtime() {
         Ok((julia, handle)) => (julia, handle),
         Err(e) => {
@@ -238,15 +245,18 @@ async fn run_predicer(data: input_data::InputData, predicer_dir: String, hass_to
             return Err(e); 
         }
     };
+    */
 
-    match execute_task(&julia).await {
+    let julia_guard = julia.lock().await;
+
+    match execute_task(&*julia_guard).await {
         Ok(()) => println!("Task executed successfully"),
         Err(e) => eprintln!("Task execution failed: {}", e),
     }
 
     let (sender, receiver) = tokio::sync::oneshot::channel();
 
-    if let Err(e) = send_task_to_runtime(&julia, data, predicer_dir, sender).await {
+    if let Err(e) = send_task_to_runtime(&*julia_guard, data, predicer_dir, sender).await {
         eprintln!("Failed to send task to runtime: {}", e);
         return Err(e);
     }
@@ -254,27 +264,32 @@ async fn run_predicer(data: input_data::InputData, predicer_dir: String, hass_to
     let result = match receive_task_result(receiver).await {
         Ok(value) => {
             println!("Results received.");
-            value // Store the value for returning later
+            value // value is of type Vec<(String, f64)>
         },
         Err(e) => {
             eprintln!("Error receiving task result: {}", e);
-            return Err(e); // Propagate the error
+            return Err(MyError(format!("Error receiving task result: {:?}", e))); // Updated error handling
         }
     };
 
-    // Shut down the Julia runtime, but don't change the function's main result
+    utilities::_print_tuple_vector(&result);
+
+    // Uncomment and update the shutdown logic if needed
+    /*
     match shutdown_julia_runtime(julia, handle).await {
         Ok(()) => println!("Julia shutdown succeeded."),
-        Err(e) => eprintln!("Error in Julia shutdown: {}", e),
+        Err(e) => eprintln!("Error in Julia shutdown: {:?}", e),
     }
+    */
 
-    // Return the result from `receive_task_result`
+    // Return the result
     Ok(result)
 
 
 }
 
-async fn change_brightness(data: input_data::InputData, predicer_dir: String, hass_token: String, url: &str, entity_id: &str) {
+/* 
+async fn change_brightness(julia: AsyncJulia<Tokio>, handle: JoinHandle<Result<(), data: input_data::InputData, predicer_dir: String, hass_token: String, url: &str, entity_id: &str) {
     let results = run_predicer(data, predicer_dir, hass_token.clone()).await;
 
     match results {
@@ -312,91 +327,120 @@ async fn change_brightness(data: input_data::InputData, predicer_dir: String, ha
     */
 }
 
+*/
+
+
+use std::sync::Arc;
+use tokio::sync::oneshot;
+
+// Import necessary modules and types (make sure they are correctly referenced)
+// use jlrs::prelude::{AsyncJulia, JlrsError};
+// use your_module::{input_data, run_predicer, MyError, init_julia_runtime};
 
 #[tokio::main]
 async fn main() {
-
-    
+    // Parse command line arguments
     let args: Vec<String> = env::args().collect();
     let predicer_dir = args
         .get(1)
-        .expect("first argument should be path to Predicer").clone();
+        .expect("First argument should be path to Predicer")
+        .to_string();
 
-    //let options_path = "/data/options.json";
-    let options_path = "./src/options.json";
-
-    let options_str = match fs::read_to_string(options_path) {
-        Ok(content) => content,
-        Err(err) => {
-            eprintln!("Error reading options.json: {}", err);
-            return;
-        }
-    };
-
-    // Parse the options JSON string into an Options struct
-    let options: Options = match serde_json::from_str(&options_str) {
-        Ok(parsed_options) => parsed_options,
-        Err(err) => {
-            eprintln!("Error parsing options.json: {}", err);
-            return;
-        }
-    };
-	
-    // Extract option data from the options.json file.
-	let _floor_area = &options.floor_area;
-	let _stories = &options.stories;
-	let _insulation_u_value = &options.insulation_u_value;
-    let listen_ip = &options.listen_ip;
-    let port = &options.port;
-	let hass_token = &options.hass_token;
-	
-	// Partially mask the hass token for printing.
-	let _masked_token = if options.hass_token.len() > 4 {
-		let last_part = &options.hass_token[options.hass_token.len() - 4..];
-		let masked_part = "*".repeat(options.hass_token.len() - 4);
-		format!("{}{}", masked_part, last_part)
-	} else {
-		// If the token is too short, just print it as is
-		options.hass_token.clone()
-	};
-
+    // Server configuration
+    let listen_ip = "0.0.0.0";
+    let port = "8002";
     let ip_port = format!("{}:{}", listen_ip, port);
+    let ip_address: std::net::SocketAddr = ip_port.parse().expect("Unable to parse socket address");
 
-    // Parse the combined string into a SocketAddr
-    let ip_address: SocketAddr = ip_port.parse().unwrap();
+    // Initialize the Julia runtime
+    let (julia, handle) = match init_julia_runtime() {
+        Ok((julia, handle)) => (julia, handle),
+        Err(e) => {
+            eprintln!("Failed to initialize Julia runtime: {:?}", e);
+            return; // Exit the program if runtime couldn't start
+        }
+    };
+    let julia = Arc::new(Mutex::new(julia));
 
-    let hass_token_clone = hass_token.clone();
+    // Set up an mpsc channel for graceful shutdown
+    let (shutdown_sender, mut shutdown_receiver) = mpsc::channel::<()>(1);
 
-    let my_route = warp::path!("from_hass" / "post")
-    .and(warp::post())
-    .map(move || {
-        // Each time this route is accessed, `create_data` is called to generate new data
-        let data = input_data::create_data();
+    // Define the route for handling POST requests to run the Julia task
+    let my_route = {
+        let julia = julia.clone();
+        let predicer_dir = predicer_dir.clone();
+        warp::path!("from_hass" / "post")
+            .and(warp::post())
+            .and(warp::body::json()) // Assuming you're receiving JSON data
+            .map(move |data: input_data::HassData| { // Update the type of 'data' if needed
+                // Clone shared resources
+                let julia_clone = julia.clone();
+                let predicer_dir_clone = predicer_dir.clone();
 
-        // Clone the other necessary variables
-        let token = hass_token_clone.clone();
-        let predicer_dir_clone = predicer_dir.clone();
-        let url = "http://192.168.1.171:8123/api/services/light/turn_on";
-        let entity_id = "light.katto1";
+                let data = input_data::create_data(data.init_temp);
 
-        // Spawn a new asynchronous task
-        task::spawn(async move {
-            change_brightness(data, predicer_dir_clone, token, url, entity_id).await;
-        });
+                // Spawn an asynchronous task to run the Julia task
+                tokio::spawn(async move {
+                    // Call the function to run the Julia task with the provided data
+                    match run_predicer(julia_clone, data, predicer_dir_clone).await {
+                        Ok(result) => {
+                            // Handle the successful result of the Julia task
+                            println!("Julia task completed successfully: {:?}", result);
+                        }
+                        Err(e) => {
+                            // Handle any errors that occurred during the Julia task
+                            eprintln!("Error running Julia task: {:?}", e);
+                        }
+                    }
+                });
 
-        // Respond to the POST request
-        warp::reply::json(&"Request received, logic is running")
-    });
+                // Respond to the request
+                warp::reply::json(&"Request received, logic is running")
+            })
+    };
 
-	
-    // Print a message indicating that the server is starting
-    
+    // Define the route for triggering a graceful shutdown
+    let shutdown_route = {
+        let shutdown_sender_clone = shutdown_sender.clone();
+        warp::path!("shutdown")
+            .and(warp::post())
+            .map(move || {
+                // Send a shutdown signal
+                let _ = shutdown_sender_clone.try_send(());
+                warp::reply::json(&"Server is shutting down")
+            })
+    };
+
+    // Combine the routes
+    let routes = my_route.or(shutdown_route);
+
+    // Start the Warp server with graceful shutdown
+    let server = {
+        let (_, server) = warp::serve(routes)
+            .bind_with_graceful_shutdown(ip_address, async move {
+                shutdown_receiver.recv().await;
+            });
+        server
+    };
     println!("Server started at {}", ip_address);
-    
-    // Combine filters and start the warp server
-    warp::serve(my_route).run(ip_address).await;
-    
+
+    // Run the server and listen for Ctrl+C
+    tokio::select! {
+        _ = server => {},
+        _ = tokio::signal::ctrl_c() => {
+            // Trigger shutdown if Ctrl+C is pressed
+            let _ = shutdown_sender.send(());
+        },
+    }
+
+    std::mem::drop(julia);
+    handle.await.expect("Julia runtime thread panicked");
+
+    println!("Server has been shut down");
 }
+
+
+
 
 #[cfg(test)]
 mod tests {

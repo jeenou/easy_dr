@@ -23,7 +23,6 @@ uv = ["jl-sys/uv", "ccall"]
 calamine = "0.19.1"
 fs = "0.0.5"
 pathbuf = "0.3.1"
-thread = "0.1.0"
 umya-spreadsheet = "0.8.7"
 jlrs = {version = "0.19.0", features = ["tokio-rt", "julia-1-8"]}
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

@@ -885,7 +885,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "thread",
  "time",
  "tokio",
  "umya-spreadsheet",
@@ -1984,12 +1983,6 @@ name = "thousands"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bf63baf9f5039dadc247375c29eb13706706cfde997d0330d05aa63a77d8820"
-
-[[package]]
-name = "thread"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe9c0e959dd1e7b871071b51bc674380d1889cd4fed9f4b3b1f5c1772d9f796"
 
 [[package]]
 name = "tiff"

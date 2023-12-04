@@ -1,7 +1,9 @@
 
 use std::collections::HashMap;
+use serde::Deserialize;
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct InputData {
     pub contains_reserves: bool,
     pub contains_online: bool,
@@ -20,6 +22,13 @@ pub struct InputData {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
+pub struct HassData {
+    pub init_temp: f64,
+}
+
+#[derive(Clone)]
+#[derive(Deserialize)]
 pub struct Process {
     pub name: String,
     pub group: String,
@@ -43,6 +52,7 @@ pub struct Process {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct Node {
     pub name: String,
     pub is_commodity: bool,
@@ -56,6 +66,7 @@ pub struct Node {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct Market {
     pub name: String,
     pub m_type: String,
@@ -75,6 +86,7 @@ pub struct Market {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct Group {
     pub name: String,
     pub g_type: String,
@@ -82,6 +94,7 @@ pub struct Group {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct NodeDiffusion {
     pub name: String,
     pub node1: String,
@@ -91,6 +104,7 @@ pub struct NodeDiffusion {
 
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct NodeDelay {
     pub name: String,
     pub node1: String,
@@ -101,6 +115,7 @@ pub struct NodeDelay {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct Topology {
     pub source: String,
     pub sink: String,
@@ -112,6 +127,7 @@ pub struct Topology {
 
 #[derive(Clone)]
 #[derive(Default)]
+#[derive(Deserialize)]
 pub struct State {
     pub in_max: f64,
     pub out_max: f64,
@@ -125,6 +141,7 @@ pub struct State {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct TimeSeries {
     pub scenario: String,
     pub series: Vec<(String, f64)>,
@@ -140,11 +157,13 @@ impl TimeSeries {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct TimeSeriesData {
     pub ts_data: Vec<TimeSeries>,
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct ConFactor {
     pub var_type: String,
     pub flow: (String, String),
@@ -152,12 +171,14 @@ pub struct ConFactor {
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct NodeHistory {
     pub node: String,
     pub steps: TimeSeriesData,
 }
 
 #[derive(Clone)]
+#[derive(Deserialize)]
 pub struct GenConstraint {
     pub name: String,
     pub gc_type: String,
@@ -186,7 +207,7 @@ pub fn add_time_serie(ts_data_vec: &mut Vec<TimeSeries>, time_series: TimeSeries
 
 }
 
-pub fn create_data() -> InputData {
+pub fn create_data(init_temp: f64) -> InputData {
 
     //Example time series
 
@@ -523,7 +544,7 @@ pub fn create_data() -> InputData {
         state_loss_proportional: 0.0,
         state_max: 308.15,
         state_min: 273.15,
-        initial_state: 296.15,
+        initial_state: init_temp.clone(),
         is_temp: true,
         t_e_conversion: 0.5,
         residual_value: 0.0,
