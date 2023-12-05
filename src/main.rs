@@ -312,7 +312,8 @@ async fn main() {
         .expect("First argument should be path to Predicer")
         .to_string();
 
-    let options_path = "./src/options.json";
+    //let options_path = "./src/options.json";
+    let options_path = "/data/options.json";
 
     let options_str = match fs::read_to_string(options_path) {
         Ok(content) => content,
