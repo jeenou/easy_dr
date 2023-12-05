@@ -4,7 +4,6 @@ use crate::input_data;
 use jlrs::prelude::*;
 use std::collections::HashMap;
 use jlrs::memory::target::frame;
-use jlrs::error::JlrsError;
 
 pub struct RunPredicer {
     pub data: input_data::InputData,

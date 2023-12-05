@@ -5,7 +5,6 @@ use jlrs::data::managed::value::ValueResult;
 use jlrs::memory::target::ExtendedTarget;
 use jlrs::prelude::*;
 use jlrs::memory::target::frame;
-use std::sync::Once;
 
 fn prepare_callable<'target, 'data, T: Target<'target>>(
     target: T,

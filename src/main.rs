@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+
 use std::env;
 mod predicer;
 mod utilities;
@@ -7,16 +7,13 @@ use hertta::julia_interface;
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, AUTHORIZATION};
 use serde_json::json;
 use tokio::time::{self, Duration};
-use std::net::SocketAddr;
-use std::fs;
 use warp::Filter;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use tokio::sync::mpsc;
-use std::{num::NonZeroUsize, path::PathBuf};
+use std::num::NonZeroUsize;
 use jlrs::prelude::*;
 use predicer::RunPredicer;
-use tokio::task;
 use jlrs::error::JlrsError;
 use tokio::task::JoinHandle;
 use std::fmt;
@@ -74,7 +71,7 @@ async fn _make_post_request(url: &str, data: &str, token: &str) -> Result<(), Bo
     Ok(())
 }
 
-async fn make_post_request_light(url: &str, entity_id: &str, token: &str, brightness: f64) -> Result<(), Box<dyn std::error::Error>> {
+async fn _make_post_request_light(url: &str, entity_id: &str, token: &str, brightness: f64) -> Result<(), Box<dyn std::error::Error>> {
     // Construct the request headers
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
@@ -175,7 +172,7 @@ async fn send_task_to_runtime(
 
     match dispatch_result {
         Ok(()) => Ok(()),
-        Err(dispatcher) => {
+        Err(_dispatcher) => {
             // Handle the error or retry
             // For example, you could log the error and return a custom MyError
             Err(MyError("Failed to dispatch task".to_string()))
@@ -203,7 +200,7 @@ async fn send_light_commands(
 ) -> Result<(), MyError> {
     for brightness in brightness_values.iter().take(2) {
         println!("Setting brightness to: {}", brightness);
-        if let Err(err) = make_post_request_light(url, entity_id, hass_token, *brightness).await {
+        if let Err(err) = _make_post_request_light(url, entity_id, hass_token, *brightness).await {
             eprintln!("Error in making POST request for brightness {}: {:?}", brightness, err);
             // Decide how to handle the error: return or continue to the next iteration
         } else {
@@ -217,7 +214,7 @@ async fn send_light_commands(
     Ok(())
 }
 
-async fn shutdown_julia_runtime(julia: AsyncJulia<Tokio>, handle: JoinHandle<Result<(), Box<JlrsError>>>) -> Result<(), MyError> {
+async fn _shutdown_julia_runtime(julia: AsyncJulia<Tokio>, handle: JoinHandle<Result<(), Box<JlrsError>>>) -> Result<(), MyError> {
     // Dropping `julia` to shut down the runtime
     std::mem::drop(julia);
 
@@ -236,16 +233,6 @@ async fn run_predicer(
     data: input_data::InputData,
     predicer_dir: String,
 ) -> Result<Vec<(String, f64)>, MyError> {
-
-    /* 
-    let (julia, handle) = match init_julia_runtime() {
-        Ok((julia, handle)) => (julia, handle),
-        Err(e) => {
-            eprintln!("Failed to initialize Julia runtime: {:?}", e);
-            return Err(e); 
-        }
-    };
-    */
 
     let julia_guard = julia.lock().await;
 
@@ -274,64 +261,43 @@ async fn run_predicer(
 
     utilities::_print_tuple_vector(&result);
 
-    // Uncomment and update the shutdown logic if needed
-    /*
-    match shutdown_julia_runtime(julia, handle).await {
-        Ok(()) => println!("Julia shutdown succeeded."),
-        Err(e) => eprintln!("Error in Julia shutdown: {:?}", e),
-    }
-    */
-
     // Return the result
     Ok(result)
 
 
 }
 
-/* 
-async fn change_brightness(julia: AsyncJulia<Tokio>, handle: JoinHandle<Result<(), data: input_data::InputData, predicer_dir: String, hass_token: String, url: &str, entity_id: &str) {
-    let results = run_predicer(data, predicer_dir, hass_token.clone()).await;
 
-    match results {
-        Ok(data) => utilities::_print_tuple_vector(&data),
-        Err(e) => {
-            // Handle the error or assign a default value
-            eprintln!("Error occurred: {}", e);
-        },
-    }
-
-    // Rest of the commented code block
-    /* 
-    let brightness_values: Vec<f64> = match results {
-        Ok(data) => data.iter().map(|(_, value)| *value * 20.0).collect(),
-        Err(e) => {
-            // Handle the error or assign a default value
-            eprintln!("Error occurred: {}", e);
-            Vec::new() // Return an empty Vec<f64>
-        }
-    };
-
+async fn change_brightness(
+    values: Vec<(String, f64)>, 
+    hass_token: String, 
+    url: &str, 
+    entity_id: &str
+) -> Result<(), MyError> {
+    // Transform values to brightness values
+    let brightness_values: Vec<f64> = values.iter().map(|(_, value)| *value * 20.0).collect();
     println!("Brightness Values: {:?}", brightness_values);
-    
-    let light_command = send_light_commands(url, entity_id, &hass_token.clone(), &brightness_values).await;
+
+    // Now passing a reference to Vec<f64> to send_light_commands
+    let light_command = send_light_commands(url, entity_id, &hass_token, &brightness_values).await;
     
     match light_command {
         Ok(()) => {
-            // Process or use the results here
-            println!("Light command succesful.");
+            println!("Light command successful.");
+            Ok(())
         },
         Err(e) => {
             eprintln!("Error in light commands: {}", e);
+            return Err(MyError(format!("Error receiving task result: {:?}", e))); // Convert the error to a Box<dyn std::error::Error>
         },
     }
-    */
 }
 
-*/
 
 
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use std::fs;
+use std::net::SocketAddr;
 
 // Import necessary modules and types (make sure they are correctly referenced)
 // use jlrs::prelude::{AsyncJulia, JlrsError};
@@ -346,11 +312,49 @@ async fn main() {
         .expect("First argument should be path to Predicer")
         .to_string();
 
-    // Server configuration
-    let listen_ip = "0.0.0.0";
-    let port = "8002";
+    let options_path = "./src/options.json";
+
+    let options_str = match fs::read_to_string(options_path) {
+        Ok(content) => content,
+        Err(err) => {
+            eprintln!("Error reading options.json: {}", err);
+            return;
+        }
+    };
+
+    // Parse the options JSON string into an Options struct
+    let options: Options = match serde_json::from_str(&options_str) {
+        Ok(parsed_options) => parsed_options,
+        Err(err) => {
+            eprintln!("Error parsing options.json: {}", err);
+            return;
+        }
+    };
+
+    // Extract option data from the options.json file.
+	let _floor_area = &options.floor_area;
+	let _stories = &options.stories;
+	let _insulation_u_value = &options.insulation_u_value;
+    let listen_ip = options.listen_ip.clone();
+    let port = options.port.clone();
+	let hass_token = options.hass_token.clone();
+    let url = "http://192.168.1.171:8123/api/services/light/turn_on";
+    let entity_id = "light.katto1";
+	
+	// Partially mask the hass token for printing.
+	let _masked_token = if options.hass_token.len() > 4 {
+		let last_part = &options.hass_token[options.hass_token.len() - 4..];
+		let masked_part = "*".repeat(options.hass_token.len() - 4);
+		format!("{}{}", masked_part, last_part)
+	} else {
+		// If the token is too short, just print it as is
+		options.hass_token.clone()
+	};
+
     let ip_port = format!("{}:{}", listen_ip, port);
-    let ip_address: std::net::SocketAddr = ip_port.parse().expect("Unable to parse socket address");
+
+    // Parse the combined string into a SocketAddr
+    let ip_address: SocketAddr = ip_port.parse().unwrap();
 
     // Initialize the Julia runtime
     let (julia, handle) = match init_julia_runtime() {
@@ -376,6 +380,9 @@ async fn main() {
                 // Clone shared resources
                 let julia_clone = julia.clone();
                 let predicer_dir_clone = predicer_dir.clone();
+                let hass_token_clone = hass_token.clone();
+                let url_clone = url.to_string();
+                let entity_id_clone = entity_id.to_string();
 
                 let data = input_data::create_data(data.init_temp);
 
@@ -386,6 +393,15 @@ async fn main() {
                         Ok(result) => {
                             // Handle the successful result of the Julia task
                             println!("Julia task completed successfully: {:?}", result);
+                            match change_brightness(result, hass_token_clone, &url_clone, &entity_id_clone).await {
+                                Ok(_) => {
+                                    // Handle the successful case here, if needed
+                                    println!("change_brightness executed successfully");
+                                }
+                                Err(e) => {
+                                    eprintln!("Error running change_brightness: {:?}", e);
+                                }
+                            }
                         }
                         Err(e) => {
                             // Handle any errors that occurred during the Julia task
@@ -434,7 +450,9 @@ async fn main() {
     }
 
     std::mem::drop(julia);
-    handle.await.expect("Julia runtime thread panicked");
+    handle.await
+    .expect("Julia exited with an error")
+    .expect("The runtime thread panicked");
 
     println!("Server has been shut down");
 }
